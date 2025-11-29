@@ -1,0 +1,225 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://raw.githubusercontent.com/anthropic-community/claude-code-guardian/main/schemas/config.schema.json",
+  "title": "Claude Code Guardian Configuration",
+  "description": "Configuration schema for Claude Code Guardian",
+  "type": "object",
+  "required": ["version", "modules"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Configuration version",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "project": {
+      "type": "object",
+      "description": "Project configuration",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Project name"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["typescript-react", "typescript-node", "javascript", "python", "other"],
+          "description": "Project type"
+        },
+        "root": {
+          "type": "string",
+          "description": "Project root directory",
+          "default": "."
+        }
+      }
+    },
+    "modules": {
+      "type": "object",
+      "description": "Module configurations",
+      "properties": {
+        "memory": {
+          "$ref": "#/definitions/memoryModule"
+        },
+        "guard": {
+          "$ref": "#/definitions/guardModule"
+        },
+        "process": {
+          "$ref": "#/definitions/processModule"
+        },
+        "resource": {
+          "$ref": "#/definitions/resourceModule"
+        },
+        "testing": {
+          "$ref": "#/definitions/testingModule"
+        },
+        "documents": {
+          "$ref": "#/definitions/documentsModule"
+        },
+        "workflow": {
+          "$ref": "#/definitions/workflowModule"
+        }
+      }
+    },
+    "notifications": {
+      "$ref": "#/definitions/notifications"
+    },
+    "conventions": {
+      "$ref": "#/definitions/conventions"
+    }
+  },
+  "definitions": {
+    "memoryModule": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "maxItems": { "type": "integer", "minimum": 10, "maximum": 1000 },
+        "autoSave": { "type": "boolean" },
+        "persistPath": { "type": "string" },
+        "compressionEnabled": { "type": "boolean" }
+      }
+    },
+    "guardModule": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "strictMode": { "type": "boolean" },
+        "rules": {
+          "type": "object",
+          "properties": {
+            "blockFakeTests": { "type": "boolean" },
+            "blockDisabledFeatures": { "type": "boolean" },
+            "blockEmptyCatch": { "type": "boolean" },
+            "blockEmojiInCode": { "type": "boolean" },
+            "blockSwallowedExceptions": { "type": "boolean" },
+            "customRules": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["name", "pattern", "message", "severity"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "pattern": { "type": "string" },
+                  "message": { "type": "string" },
+                  "severity": { "type": "string", "enum": ["warning", "error", "block"] }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "processModule": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "ports": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 1, "maximum": 65535 }
+        },
+        "autoKillOnConflict": { "type": "boolean" },
+        "trackSpawnedProcesses": { "type": "boolean" }
+      }
+    },
+    "resourceModule": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "checkpoints": {
+          "type": "object",
+          "properties": {
+            "auto": { "type": "boolean" },
+            "thresholds": {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 1, "maximum": 100 }
+            },
+            "maxCheckpoints": { "type": "integer", "minimum": 1 },
+            "compressOld": { "type": "boolean" }
+          }
+        },
+        "warningThreshold": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "pauseThreshold": { "type": "integer", "minimum": 1, "maximum": 100 }
+      }
+    },
+    "testingModule": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "autoRun": { "type": "boolean" },
+        "testCommand": { "type": "string" },
+        "browser": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "headless": { "type": "boolean" },
+            "captureConsole": { "type": "boolean" },
+            "captureNetwork": { "type": "boolean" },
+            "screenshotOnError": { "type": "boolean" }
+          }
+        },
+        "cleanup": {
+          "type": "object",
+          "properties": {
+            "autoCleanTestData": { "type": "boolean" },
+            "testDataPrefix": { "type": "string" },
+            "testDataLocations": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+    "documentsModule": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "locations": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "updateInsteadOfCreate": { "type": "boolean" },
+        "namingConvention": { "type": "string" }
+      }
+    },
+    "workflowModule": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "autoTrackTasks": { "type": "boolean" },
+        "requireTaskForLargeChanges": { "type": "boolean" },
+        "largeChangeThreshold": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "notifications": {
+      "type": "object",
+      "properties": {
+        "showInline": { "type": "boolean" },
+        "showStatusBar": { "type": "boolean" },
+        "verbosity": { "type": "string", "enum": ["minimal", "normal", "verbose"] },
+        "sound": {
+          "type": "object",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "criticalOnly": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "conventions": {
+      "type": "object",
+      "properties": {
+        "fileNaming": { "$ref": "#/definitions/namingConvention" },
+        "variableNaming": { "$ref": "#/definitions/namingConvention" },
+        "componentNaming": { "$ref": "#/definitions/namingConvention" },
+        "noEmoji": { "type": "boolean" },
+        "noUnicode": { "type": "boolean" }
+      }
+    },
+    "namingConvention": {
+      "type": "string",
+      "enum": ["camelCase", "PascalCase", "snake_case", "kebab-case", "SCREAMING_SNAKE_CASE"]
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "my-project",
+    "type": "typescript-node",
+    "root": "."
+  },
+  "modules": {
+    "memory": {
+      "enabled": true,
+      "maxItems": 50,
+      "autoSave": true,
+      "persistPath": ".ccg/memory.db",
+      "compressionEnabled": false
+    },
+    "guard": {
+      "enabled": true,
+      "strictMode": false,
+      "rules": {
+        "blockFakeTests": true,
+        "blockDisabledFeatures": false,
+        "blockEmptyCatch": true,
+        "blockEmojiInCode": false,
+        "blockSwallowedExceptions": false
+      }
+    },
+    "process": {
+      "enabled": true,
+      "ports": {
+        "dev": 3000
+      },
+      "autoKillOnConflict": false,
+      "trackSpawnedProcesses": true
+    },
+    "resource": {
+      "enabled": true,
+      "checkpoints": {
+        "auto": false,
+        "thresholds": [85, 95],
+        "maxCheckpoints": 5,
+        "compressOld": false
+      },
+      "warningThreshold": 80,
+      "pauseThreshold": 95
+    },
+    "testing": {
+      "enabled": false,
+      "autoRun": false,
+      "testCommand": "npm test",
+      "browser": {
+        "enabled": false,
+        "headless": true,
+        "captureConsole": false,
+        "captureNetwork": false,
+        "screenshotOnError": false
+      },
+      "cleanup": {
+        "autoCleanTestData": false,
+        "testDataPrefix": "test_",
+        "testDataLocations": []
+      }
+    },
+    "documents": {
+      "enabled": false,
+      "locations": {},
+      "updateInsteadOfCreate": false,
+      "namingConvention": "kebab-case"
+    },
+    "workflow": {
+      "enabled": true,
+      "autoTrackTasks": false,
+      "requireTaskForLargeChanges": false,
+      "largeChangeThreshold": 200
+    }
+  },
+  "notifications": {
+    "showInline": true,
+    "showStatusBar": true,
+    "verbosity": "minimal",
+    "sound": {
+      "enabled": false,
+      "criticalOnly": true
+    }
+  },
+  "conventions": {
+    "fileNaming": "kebab-case",
+    "variableNaming": "camelCase",
+    "componentNaming": "PascalCase",
+    "noEmoji": false,
+    "noUnicode": false
+  }
+}

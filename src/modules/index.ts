@@ -139,3 +139,195 @@ export interface ICCGModule {
    */
   getStatus(): Record<string, unknown>;
 }
+
+// ═══════════════════════════════════════════════════════════════
+//                      MODULE INITIALIZATION
+// ═══════════════════════════════════════════════════════════════
+
+import { ConfigManager } from '../core/config-manager.js';
+import { EventBus } from '../core/event-bus.js';
+import { Logger } from '../core/logger.js';
+import { join } from 'path';
+import {
+  MemoryModuleConfig,
+  GuardModuleConfig,
+  ProcessModuleConfig,
+  ResourceModuleConfig,
+  WorkflowModuleConfig,
+  TestingModuleConfig,
+  DocumentsModuleConfig,
+} from '../core/types.js';
+
+/**
+ * Initialized modules interface for HookRouter
+ */
+export interface InitializedModules {
+  memory: MemoryModule;
+  guard: GuardModule;
+  process: ProcessModule;
+  resource: ResourceModule;
+  workflow: WorkflowModule;
+  testing: TestingModule;
+  documents: DocumentsModule;
+}
+
+/**
+ * Default module configurations
+ */
+function getDefaultConfigs(ccgDir: string): {
+  memory: MemoryModuleConfig;
+  guard: GuardModuleConfig;
+  process: ProcessModuleConfig;
+  resource: ResourceModuleConfig;
+  workflow: WorkflowModuleConfig;
+  testing: TestingModuleConfig;
+  documents: DocumentsModuleConfig;
+} {
+  return {
+    memory: {
+      enabled: true,
+      maxItems: 1000,
+      autoSave: true,
+      persistPath: join(ccgDir, 'memory.db'),
+      compressionEnabled: true,
+    },
+    guard: {
+      enabled: true,
+      strictMode: false,
+      rules: {
+        blockFakeTests: true,
+        blockDisabledFeatures: true,
+        blockEmptyCatch: true,
+        blockEmojiInCode: true,
+        blockSwallowedExceptions: true,
+      },
+    },
+    process: {
+      enabled: true,
+      ports: { dev: 3000, preview: 5173 },
+      autoKillOnConflict: false,
+      trackSpawnedProcesses: true,
+    },
+    resource: {
+      enabled: true,
+      checkpoints: {
+        auto: true,
+        thresholds: [70, 85, 95],
+        maxCheckpoints: 10,
+        compressOld: true,
+      },
+      warningThreshold: 70,
+      pauseThreshold: 95,
+    },
+    workflow: {
+      enabled: true,
+      autoTrackTasks: true,
+      requireTaskForLargeChanges: true,
+      largeChangeThreshold: 100,
+    },
+    testing: {
+      enabled: true,
+      autoRun: false,
+      testCommand: 'npm test',
+      browser: {
+        enabled: false,
+        headless: true,
+        captureConsole: true,
+        captureNetwork: false,
+        screenshotOnError: true,
+      },
+      cleanup: {
+        autoCleanTestData: true,
+        testDataPrefix: 'test_',
+        testDataLocations: ['./test-data', './__tests__/fixtures'],
+      },
+    },
+    documents: {
+      enabled: true,
+      locations: { docs: 'docs', readme: '.', api: 'docs/api' },
+      updateInsteadOfCreate: true,
+      namingConvention: 'kebab-case',
+    },
+  };
+}
+
+/**
+ * Initialize all CCG modules
+ *
+ * @param configManager - ConfigManager instance
+ * @param eventBus - EventBus instance
+ * @param logger - Logger instance
+ * @param projectRoot - Root directory of the project
+ * @returns Initialized modules object
+ */
+export async function initializeModules(
+  configManager: ConfigManager,
+  eventBus: EventBus,
+  logger: Logger,
+  projectRoot: string
+): Promise<InitializedModules> {
+  const ccgDir = join(projectRoot, '.ccg');
+  const defaults = getDefaultConfigs(ccgDir);
+
+  // Get module configs from ConfigManager, fall back to defaults
+  const memoryConfig = (await configManager.get('modules.memory') as MemoryModuleConfig | null) || defaults.memory;
+  const guardConfig = (await configManager.get('modules.guard') as GuardModuleConfig | null) || defaults.guard;
+  const processConfig = (await configManager.get('modules.process') as ProcessModuleConfig | null) || defaults.process;
+  const resourceConfig = (await configManager.get('modules.resource') as ResourceModuleConfig | null) || defaults.resource;
+  const workflowConfig = (await configManager.get('modules.workflow') as WorkflowModuleConfig | null) || defaults.workflow;
+  const testingConfig = (await configManager.get('modules.testing') as TestingModuleConfig | null) || defaults.testing;
+  const documentsConfig = (await configManager.get('modules.documents') as DocumentsModuleConfig | null) || defaults.documents;
+
+  // Initialize Memory Module
+  const memoryModule = new MemoryModule(memoryConfig, eventBus, logger);
+  await memoryModule.initialize();
+
+  // Initialize Guard Module
+  const guardModule = new GuardModule(guardConfig, eventBus, logger);
+  await guardModule.initialize();
+
+  // Initialize Process Module
+  const processModule = new ProcessModule(processConfig, eventBus, logger);
+  await processModule.initialize();
+
+  // Initialize Resource Module
+  const resourceModule = new ResourceModule(resourceConfig, eventBus, logger, projectRoot);
+  await resourceModule.initialize();
+
+  // Initialize Workflow Module
+  const workflowModule = new WorkflowModule(workflowConfig, eventBus, logger, projectRoot);
+  await workflowModule.initialize();
+
+  // Initialize Testing Module
+  const testingModule = new TestingModule(testingConfig, eventBus, logger, projectRoot);
+  await testingModule.initialize();
+
+  // Initialize Documents Module
+  const documentsModule = new DocumentsModule(documentsConfig, eventBus, logger, projectRoot);
+  await documentsModule.initialize();
+
+  logger.info('All CCG modules initialized');
+
+  return {
+    memory: memoryModule,
+    guard: guardModule,
+    process: processModule,
+    resource: resourceModule,
+    workflow: workflowModule,
+    testing: testingModule,
+    documents: documentsModule,
+  };
+}
+
+/**
+ * Shutdown all modules gracefully
+ */
+export async function shutdownModules(modules: InitializedModules): Promise<void> {
+  await modules.memory.shutdown();
+  await modules.guard.shutdown();
+  await modules.process.shutdown();
+  await modules.resource.shutdown();
+  await modules.workflow.shutdown();
+  await modules.testing.shutdown();
+  await modules.documents.shutdown();
+}

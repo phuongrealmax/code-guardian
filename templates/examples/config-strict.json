@@ -1,0 +1,123 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "enterprise-project",
+    "type": "typescript-node",
+    "root": "."
+  },
+  "modules": {
+    "memory": {
+      "enabled": true,
+      "maxItems": 200,
+      "autoSave": true,
+      "persistPath": ".ccg/memory.db",
+      "compressionEnabled": true
+    },
+    "guard": {
+      "enabled": true,
+      "strictMode": true,
+      "rules": {
+        "blockFakeTests": true,
+        "blockDisabledFeatures": true,
+        "blockEmptyCatch": true,
+        "blockEmojiInCode": true,
+        "blockSwallowedExceptions": true,
+        "customRules": [
+          {
+            "name": "no-console-log",
+            "pattern": "console\\.log\\(",
+            "message": "Use logger instead of console.log",
+            "severity": "warning"
+          },
+          {
+            "name": "no-any-type",
+            "pattern": ":\\s*any\\b",
+            "message": "Avoid using 'any' type",
+            "severity": "warning"
+          },
+          {
+            "name": "require-error-handling",
+            "pattern": "\\.catch\\(\\s*\\(\\s*\\)\\s*=>",
+            "message": "Error handler must use error parameter",
+            "severity": "error"
+          }
+        ]
+      }
+    },
+    "process": {
+      "enabled": true,
+      "ports": {
+        "dev": 3000,
+        "api": 8080,
+        "test": 9000,
+        "storybook": 6006
+      },
+      "autoKillOnConflict": true,
+      "trackSpawnedProcesses": true
+    },
+    "resource": {
+      "enabled": true,
+      "checkpoints": {
+        "auto": true,
+        "thresholds": [40, 60, 75, 85, 95],
+        "maxCheckpoints": 20,
+        "compressOld": true
+      },
+      "warningThreshold": 60,
+      "pauseThreshold": 90
+    },
+    "testing": {
+      "enabled": true,
+      "autoRun": true,
+      "testCommand": "npm run test:affected",
+      "browser": {
+        "enabled": true,
+        "headless": true,
+        "captureConsole": true,
+        "captureNetwork": true,
+        "screenshotOnError": true
+      },
+      "cleanup": {
+        "autoCleanTestData": true,
+        "testDataPrefix": "test_",
+        "testDataLocations": ["tmp", "test-data", ".test", "coverage"]
+      }
+    },
+    "documents": {
+      "enabled": true,
+      "locations": {
+        "readme": "README.md",
+        "docs": "docs",
+        "api": "docs/api",
+        "specs": "docs/specs",
+        "architecture": "docs/architecture",
+        "changelog": "CHANGELOG.md",
+        "contributing": "CONTRIBUTING.md"
+      },
+      "updateInsteadOfCreate": true,
+      "namingConvention": "kebab-case"
+    },
+    "workflow": {
+      "enabled": true,
+      "autoTrackTasks": true,
+      "requireTaskForLargeChanges": true,
+      "largeChangeThreshold": 50
+    }
+  },
+  "notifications": {
+    "showInline": true,
+    "showStatusBar": true,
+    "verbosity": "verbose",
+    "sound": {
+      "enabled": true,
+      "criticalOnly": false
+    }
+  },
+  "conventions": {
+    "fileNaming": "kebab-case",
+    "variableNaming": "camelCase",
+    "componentNaming": "PascalCase",
+    "noEmoji": true,
+    "noUnicode": true
+  }
+}

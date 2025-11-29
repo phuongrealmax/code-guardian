@@ -141,34 +141,69 @@ Tài liệu này dùng để theo dõi tiến độ triển khai dự án Claude
 
 ---
 
+## GIAI ĐOẠN 6: CLI & INTEGRATION (Hoàn thiện) (Updated: 2025-11-29)
+
 ## GIAI ĐOẠN 6: CLI & INTEGRATION (Hoàn thiện)
 *Mục tiêu: Tạo công cụ dòng lệnh để user tương tác.*
+*Cập nhật:* 2025-11-29
 
-- [ ] **Task 6.1**: **CLI Hook Command** - Lệnh gọi hooks
+- [x] **Task 6.1**: **CLI Hook Command** - Lệnh gọi hooks
     - *Tham khảo:* `implementation_3.md` > Section 10: CLI HOOK COMMAND
-- [ ] **Task 6.2**: **CLI Entry Point** - Lệnh `ccg init`, `ccg status`
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `src/bin/hook-command.ts`, `src/modules/index.ts` (initializeModules)
+- [x] **Task 6.2**: **CLI Entry Point** - Lệnh `ccg init`, `ccg status`
     - *Tham khảo:* `implementation_3.md` > Section 11: UPDATED CLI ENTRY
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `src/bin/ccg.ts`
 
+## GIAI ĐOẠN 7: TEMPLATES & INITIALIZATION (Tài nguyên & Khởi tạo) (Updated: 2025-11-29)
 
 ## GIAI ĐOẠN 7: TEMPLATES & INITIALIZATION (Tài nguyên & Khởi tạo)
 *Mục tiêu: Tạo các file mẫu (config, hooks, commands) và script `ccg init` để người dùng cài đặt.*
+*Cập nhật:* 2025-11-29
 
-- [ ] **Task 7.1**: **Main Config Templates** - Tạo `config.template.json` và `mcp.template.json`
+- [x] **Task 7.1**: **Main Config Templates** - Tạo `config.template.json` và `mcp.template.json`
     - *Tham khảo:* `templates_implementation.md` > Section 2 & 4
-- [ ] **Task 7.2**: **Hooks Template** - Tạo `hooks.template.json`
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `templates/config.template.json`, `templates/mcp.template.json`
+- [x] **Task 7.2**: **Hooks Template** - Tạo `hooks.template.json`
     - *Tham khảo:* `templates_implementation.md` > Section 3
-- [ ] **Task 7.3**: **Slash Commands** - Tạo các file `.md` cho lệnh `/ccg` (dashboard, task, memory...)
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `templates/hooks.template.json`
+- [x] **Task 7.3**: **Slash Commands** - Tạo các file `.md` cho lệnh `/ccg` (dashboard, task, memory...)
     - *Tham khảo:* `templates_implementation.md` > Section 5-10
-- [ ] **Task 7.4**: **Project Docs** - Tạo file `CLAUDE.md` hướng dẫn AI
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `templates/commands/ccg.md`, `ccg-task.md`, `ccg-memory.md`, `ccg-guard.md`, `ccg-test.md`, `ccg-process.md`
+- [x] **Task 7.4**: **Project Docs** - Tạo file `CLAUDE.md` hướng dẫn AI
     - *Tham khảo:* `templates_implementation.md` > Section 11
-- [ ] **Task 7.5**: **Example Configs** - Tạo các profile config (minimal, strict, frontend)
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `templates/CLAUDE.md`
+- [x] **Task 7.5**: **Example Configs** - Tạo các profile config (minimal, strict, frontend)
     - *Tham khảo:* `templates_implementation.md` > Section 12
-- [ ] **Task 7.6**: **JSON Schema** - Tạo schema validate config
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `templates/examples/config-minimal.json`, `config-strict.json`, `config-frontend.json`
+- [x] **Task 7.6**: **JSON Schema** - Tạo schema validate config
     - *Tham khảo:* `templates_implementation.md` > Section 13
-- [ ] **Task 7.7**: **Init Script** - Logic cho lệnh `ccg init` (`src/bin/init-templates.ts`)
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `schemas/config.schema.json`
+- [x] **Task 7.7**: **Init Script** - Logic cho lệnh `ccg init` (`src/bin/init-templates.ts`)
     - *Tham khảo:* `templates_implementation.md` > Section 14
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `src/bin/init-templates.ts`
 
----
+## GIAI ĐOẠN 8: TESTING & QA (Kiểm định chất lượng)
+*Mục tiêu: Đảm bảo code chạy đúng như thiết kế.*
+
+- [ ] **Task 8.1**: **Test Strategy** - Tạo file `TESTING.md`
+    - *Tham khảo:* Tài liệu Testing vừa tạo
+- [ ] **Task 8.2**: **Unit Tests Setup** - Cài đặt `vitest`
+    - *Tham khảo:* `package.json`
+- [ ] **Task 8.3**: **Guard Tests** - Implement `tests/unit/guard.test.ts`
+    - *Tham khảo:* Tài liệu Testing (Mục 1)
+- [ ] **Task 8.4**: **Utils Tests** - Implement `tests/unit/utils.test.ts`
+    - *Tham khảo:* Tài liệu Testing (Mục 2)
+- [ ] **Task 8.5**: **Config Tests** - Implement `tests/unit/config.test.ts`
+    - *Tham khảo:* Tài liệu Testing (Mục 3)
 
 ## HƯỚNG DẪN PROMPT CHO CLAUDE
 

@@ -1,0 +1,113 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "frontend-app",
+    "type": "typescript-react",
+    "root": "."
+  },
+  "modules": {
+    "memory": {
+      "enabled": true,
+      "maxItems": 100,
+      "autoSave": true,
+      "persistPath": ".ccg/memory.db",
+      "compressionEnabled": true
+    },
+    "guard": {
+      "enabled": true,
+      "strictMode": true,
+      "rules": {
+        "blockFakeTests": true,
+        "blockDisabledFeatures": true,
+        "blockEmptyCatch": true,
+        "blockEmojiInCode": true,
+        "blockSwallowedExceptions": true,
+        "customRules": [
+          {
+            "name": "no-inline-styles",
+            "pattern": "style=\\{\\{",
+            "message": "Use CSS classes or styled-components instead of inline styles",
+            "severity": "warning"
+          },
+          {
+            "name": "require-key-prop",
+            "pattern": "\\.map\\([^)]+\\)(?!.*key=)",
+            "message": "Array items should have unique key props",
+            "severity": "warning"
+          }
+        ]
+      }
+    },
+    "process": {
+      "enabled": true,
+      "ports": {
+        "dev": 3000,
+        "storybook": 6006,
+        "api-mock": 3001
+      },
+      "autoKillOnConflict": true,
+      "trackSpawnedProcesses": true
+    },
+    "resource": {
+      "enabled": true,
+      "checkpoints": {
+        "auto": true,
+        "thresholds": [50, 70, 85, 95],
+        "maxCheckpoints": 10,
+        "compressOld": true
+      },
+      "warningThreshold": 70,
+      "pauseThreshold": 95
+    },
+    "testing": {
+      "enabled": true,
+      "autoRun": false,
+      "testCommand": "npm test -- --watchAll=false",
+      "browser": {
+        "enabled": true,
+        "headless": false,
+        "captureConsole": true,
+        "captureNetwork": true,
+        "screenshotOnError": true
+      },
+      "cleanup": {
+        "autoCleanTestData": true,
+        "testDataPrefix": "test_",
+        "testDataLocations": ["tmp", ".test", "coverage"]
+      }
+    },
+    "documents": {
+      "enabled": true,
+      "locations": {
+        "readme": "README.md",
+        "docs": "docs",
+        "components": "docs/components",
+        "storybook": "src/stories"
+      },
+      "updateInsteadOfCreate": true,
+      "namingConvention": "PascalCase"
+    },
+    "workflow": {
+      "enabled": true,
+      "autoTrackTasks": true,
+      "requireTaskForLargeChanges": false,
+      "largeChangeThreshold": 100
+    }
+  },
+  "notifications": {
+    "showInline": true,
+    "showStatusBar": true,
+    "verbosity": "normal",
+    "sound": {
+      "enabled": false,
+      "criticalOnly": true
+    }
+  },
+  "conventions": {
+    "fileNaming": "PascalCase",
+    "variableNaming": "camelCase",
+    "componentNaming": "PascalCase",
+    "noEmoji": true,
+    "noUnicode": true
+  }
+}

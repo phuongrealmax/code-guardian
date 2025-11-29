@@ -1,33 +1,67 @@
 {
+  "$schema": "https://docs.anthropic.com/schemas/claude-code-hooks.schema.json",
+  "version": "1.0",
+
   "hooks": {
     "SessionStart": [
       {
         "type": "command",
-        "command": "npx @anthropic-community/claude-code-guardian hook session-start"
+        "command": "npx @anthropic-community/claude-code-guardian hook session-start",
+        "timeout": 10000,
+        "onError": "warn"
       }
     ],
+
     "PreToolCall": [
       {
         "type": "command",
-        "command": "npx @anthropic-community/claude-code-guardian hook pre-tool $TOOL_NAME",
+        "command": "npx @anthropic-community/claude-code-guardian hook pre-tool \"$TOOL_NAME\"",
+        "timeout": 5000,
+        "onError": "warn",
         "filter": {
-          "tools": ["write_file", "edit_file", "bash", "create_file"]
+          "tools": [
+            "write_file",
+            "edit_file",
+            "create_file",
+            "str_replace_editor",
+            "bash"
+          ]
+        },
+        "env": {
+          "CCG_TOOL_INPUT": "$TOOL_INPUT_JSON"
         }
       }
     ],
+
     "PostToolCall": [
       {
         "type": "command",
-        "command": "npx @anthropic-community/claude-code-guardian hook post-tool $TOOL_NAME",
+        "command": "npx @anthropic-community/claude-code-guardian hook post-tool \"$TOOL_NAME\"",
+        "timeout": 30000,
+        "onError": "warn",
         "filter": {
-          "tools": ["write_file", "edit_file", "create_file"]
+          "tools": [
+            "write_file",
+            "edit_file",
+            "create_file",
+            "str_replace_editor"
+          ]
+        },
+        "env": {
+          "CCG_TOOL_INPUT": "$TOOL_INPUT_JSON",
+          "CCG_TOOL_OUTPUT": "$TOOL_OUTPUT_JSON",
+          "CCG_TOOL_SUCCESS": "$TOOL_SUCCESS",
+          "CCG_TOOL_DURATION": "$TOOL_DURATION_MS"
         }
       }
     ],
+
     "Stop": [
       {
         "type": "command",
-        "command": "npx @anthropic-community/claude-code-guardian hook session-end"
+        "command": "npx @anthropic-community/claude-code-guardian hook session-end",
+        "timeout": 15000,
+        "onError": "ignore"
       }
     ]
   }
