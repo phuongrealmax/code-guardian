@@ -48,17 +48,59 @@ export type {
   CleanupResult,
 } from './process/index.js';
 
-// Resource Module - Token and checkpoint management (TODO: Task 4.1)
-// export { ResourceModule, ResourceService } from './resource/index.js';
+// Resource Module - Token and checkpoint management
+export { ResourceModule, ResourceService } from './resource/index.js';
+export type {
+  ResourceStatus,
+  CheckpointInfo,
+  ResourceWarning,
+  TaskEstimate,
+  CheckpointData,
+  CheckpointReason,
+  TokenUsage,
+} from './resource/index.js';
 
-// Workflow Module - Task and progress tracking (TODO: Task 4.2)
-// export { WorkflowModule, WorkflowService } from './workflow/index.js';
+// Workflow Module - Task and progress tracking
+export { WorkflowModule, WorkflowService } from './workflow/index.js';
+export type {
+  Task,
+  TaskStatus,
+  TaskPriority,
+  TaskNote,
+  TaskCreateParams,
+  TaskUpdateParams,
+  TaskFilter,
+  WorkflowStatus,
+  TaskSummary,
+} from './workflow/index.js';
 
-// Testing Module - Test runner and browser automation (TODO: Task 4.3)
-// export { TestingModule, TestingService } from './testing/index.js';
+// Testing Module - Test runner and browser automation
+export { TestingModule, TestingService, BrowserService } from './testing/index.js';
+export type {
+  TestResults,
+  TestResult,
+  CoverageReport,
+  BrowserSession,
+  ConsoleLog,
+  NetworkRequest,
+  Screenshot,
+  BrowserError,
+  TestRunOptions,
+  TestCleanupResult,
+  TestingModuleStatus,
+} from './testing/index.js';
 
-// Documents Module - Document registry and management (TODO: Task 4.4)
-// export { DocumentsModule, DocumentsService } from './documents/index.js';
+// Documents Module - Document registry and management
+export { DocumentsModule, DocumentsService } from './documents/index.js';
+export type {
+  Document,
+  DocumentType,
+  DocumentRegistry,
+  DocumentSearchResult,
+  DocumentUpdateCheck,
+  DocumentCreateParams,
+  DocumentsModuleStatus,
+} from './documents/index.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      MODULE INTERFACE
