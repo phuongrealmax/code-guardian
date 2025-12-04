@@ -28,6 +28,7 @@ body {
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 .container {
@@ -289,11 +290,21 @@ section .subtitle {
 /* Features Grid */
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: 1fr;
   gap: 24px;
+  justify-items: center;
+}
+
+@media (min-width: 768px) {
+  .features-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    justify-items: stretch;
+  }
 }
 
 .feature-card {
+  width: 100%;
+  max-width: 480px;
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--border);
@@ -302,6 +313,12 @@ section .subtitle {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .feature-card {
+    max-width: none;
+  }
 }
 
 .feature-card::before {
@@ -478,12 +495,22 @@ section .subtitle {
 /* Pricing */
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 1fr;
   gap: 24px;
   margin-top: 64px;
+  justify-items: center;
+}
+
+@media (min-width: 768px) {
+  .pricing-grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    justify-items: stretch;
+  }
 }
 
 .pricing-card {
+  width: 100%;
+  max-width: 400px;
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--border);
@@ -493,6 +520,12 @@ section .subtitle {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .pricing-card {
+    max-width: none;
+  }
 }
 
 .pricing-card::before {
