@@ -31,10 +31,10 @@ export default function Home() {
             fontSize: '0.875rem',
             flexWrap: 'wrap'
           }}>
-            <span>🛡️ Built on Claude</span>
-            <span>⭐ 100+ GitHub Stars</span>
-            <span>📦 Open Source</span>
-            <span>🔒 GDPR Ready</span>
+            <span>Built on Claude</span>
+            <span>100+ GitHub Stars</span>
+            <span>Open Source</span>
+            <span>GDPR Ready</span>
           </div>
         </div>
       </section>
@@ -74,7 +74,7 @@ export default function Home() {
 
           <div className="features-grid">
             <div className="feature-card" style={{textAlign: 'left'}}>
-              <div style={{color: '#FFD700', marginBottom: '8px'}}>★★★★★</div>
+              <div style={{marginBottom: '8px', fontSize: '0.75rem', opacity: 0.6}}>5/5</div>
               <p style={{fontStyle: 'italic', marginBottom: '16px'}}>
                 "Code Guardian reduced our refactoring time by 60%. What took weeks now takes hours.
                 The hotspot detection is incredibly accurate."
@@ -86,7 +86,7 @@ export default function Home() {
             </div>
 
             <div className="feature-card" style={{textAlign: 'left'}}>
-              <div style={{color: '#FFD700', marginBottom: '8px'}}>★★★★★</div>
+              <div style={{marginBottom: '8px', fontSize: '0.75rem', opacity: 0.6}}>5/5</div>
               <p style={{fontStyle: 'italic', marginBottom: '16px'}}>
                 "Finally, a tool that understands large codebases. The reports are detailed yet readable.
                 Our team uses it on every PR now."
@@ -98,7 +98,7 @@ export default function Home() {
             </div>
 
             <div className="feature-card" style={{textAlign: 'left'}}>
-              <div style={{color: '#FFD700', marginBottom: '8px'}}>★★★★★</div>
+              <div style={{marginBottom: '8px', fontSize: '0.75rem', opacity: 0.6}}>5/5</div>
               <p style={{fontStyle: 'italic', marginBottom: '16px'}}>
                 "The AI-guided refactoring is a game changer. It catches patterns we'd miss in code review.
                 Worth every penny."
