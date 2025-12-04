@@ -22,11 +22,11 @@ Code Guardian Studio sử dụng hệ thống license key để kiểm soát quy
 ```
 User → codeguardian.studio/pricing → [Get Team] Button
   ↓
-  POST /api/checkout → Creates Stripe Checkout Session
+  POST /api/checkout → Returns Paddle Checkout URL
   ↓
-  User completes payment on Stripe
+  User completes payment on Paddle (Merchant of Record)
   ↓
-  Stripe sends webhook to /api/webhooks/stripe
+  Paddle sends webhook to /api/webhooks/paddle
   ↓
   Backend creates license key (CGS-TEAM-XXXX-XXXX)
   ↓
@@ -52,7 +52,8 @@ User → codeguardian.studio/pricing → [Get Team] Button
 **Files:**
 - `license.types.ts` - TypeScript types và interfaces
 - `license.service.ts` - License CRUD operations (SQLite)
-- `stripe.service.ts` - Stripe integration
+- `paddle.service.ts` - Paddle integration (Merchant of Record)
+- `stripe.service.ts` - Stripe integration (legacy, kept for reference)
 
 **Database Schema:**
 ```sql
@@ -165,28 +166,29 @@ Creates a Stripe Checkout session for Team tier purchase.
 
 ---
 
-#### **POST /api/webhooks/stripe**
-Handles Stripe webhook events (checkout completed, subscription changes, cancellations).
+#### **POST /api/webhooks/paddle**
+Handles Paddle webhook events (subscription created, updated, cancelled, etc.)
 
 **Headers:**
 ```
-stripe-signature: t=xxx,v1=yyy
+Content-Type: application/x-www-form-urlencoded (or application/json)
 ```
 
 **Events Handled:**
-- `checkout.session.completed` → Create license + Send email
-- `customer.subscription.updated` → Update license status
-- `customer.subscription.deleted` → Cancel license
-- `invoice.payment_failed` → Mark license as inactive
+- `subscription_created` / `subscription_payment_succeeded` → Create license + Send email
+- `subscription_updated` → Update license status
+- `subscription_cancelled` → Cancel license
+- `subscription_payment_failed` → Mark license as inactive
 
 **Webhook Processing:**
-1. Verify webhook signature with Stripe
-2. Parse event type
-3. For `checkout.session.completed`:
-   - Extract email, tier, subscription ID
+1. Parse Paddle payload (form-encoded or JSON)
+2. Verify webhook signature with Paddle public key (optional)
+3. For `subscription_created` / `subscription_payment_succeeded`:
+   - Extract email, tier, subscription ID from payload
+   - Parse passthrough data for custom parameters
    - Generate license key: `CGS-TEAM-{RANDOM}-{RANDOM}`
    - Save to database
-   - Send email với license key
+   - Send email with license key
 4. Return `{ received: true, handled: true }`
 
 ---
@@ -306,12 +308,13 @@ https://codeguardian.studio/success?session_id={CHECKOUT_SESSION_ID}
 
 ---
 
-## Stripe Setup
+## Paddle Setup
 
-### 1. Create Stripe Account
-1. Go to [stripe.com](https://stripe.com)
-2. Sign up for account
-3. Complete business verification
+### 1. Create Paddle Account
+1. Go to [paddle.com](https://www.paddle.com)
+2. Sign up for Paddle Billing account
+3. Complete business verification (can take 1-3 days)
+4. Wait for approval from Paddle team
 
 ### 2. Create Product & Prices
 
@@ -320,50 +323,63 @@ https://codeguardian.studio/success?session_id={CHECKOUT_SESSION_ID}
 - Description: "Team plan with advanced features"
 
 **Prices:**
-- Monthly: $39/mo (recurring)
+- Monthly: $39/mo (recurring subscription)
 - Yearly: $390/year (10% discount, recurring)
 
-**Get Price IDs:**
+**Get Product/Price IDs:**
 ```
-price_1Xxx... (monthly)
-price_1Yyy... (yearly)
+pro_team (product ID)
+pri_xxx (monthly price ID)
+pri_yyy (yearly price ID)
 ```
 
-### 3. Set Environment Variables
+### 3. Create Hosted Checkout
+
+**In Paddle Dashboard:**
+1. Go to Checkout → Checkout Settings
+2. Create new Hosted Checkout for Team Monthly plan
+3. Configure:
+   - Product: Code Guardian Studio - Team
+   - Price: $39/month
+   - Success URL: `https://codeguardian.studio/success?session_id={checkout_id}`
+   - Cancel URL: `https://codeguardian.studio/pricing`
+4. Copy Checkout URL (e.g., `https://buy.paddle.com/product/xxx`)
+
+### 4. Set Environment Variables
 
 **For Next.js site:**
 ```bash
 # .env.local
-STRIPE_SECRET_KEY=sk_live_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-STRIPE_PRICE_TEAM_MONTHLY=price_1Xxx...
-STRIPE_PRICE_TEAM_YEARLY=price_1Yyy...
+PADDLE_VENDOR_ID=12345
+PADDLE_API_KEY=xxx
+PADDLE_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----...
+PADDLE_CHECKOUT_URL_TEAM=https://buy.paddle.com/product/xxx
+PADDLE_PRODUCT_ID_TEAM=pro_team
 ```
 
-**Get Webhook Secret:**
-1. Go to Stripe Dashboard → Developers → Webhooks
-2. Add endpoint: `https://codeguardian.studio/api/webhooks/stripe`
+**Get Webhook Configuration:**
+1. Go to Paddle Dashboard → Developer Tools → Notifications
+2. Add webhook endpoint: `https://codeguardian.studio/api/webhooks/paddle`
 3. Select events:
-   - `checkout.session.completed`
-   - `customer.subscription.updated`
-   - `customer.subscription.deleted`
-   - `invoice.payment_failed`
-4. Copy webhook signing secret
+   - `subscription.created`
+   - `subscription.updated`
+   - `subscription.cancelled`
+   - `subscription.payment_succeeded`
+   - `subscription.payment_failed`
+4. Copy public key for signature verification (optional)
 
-### 4. Test with Stripe CLI
+### 5. Test with Paddle Sandbox
 
 ```bash
-# Install Stripe CLI
-brew install stripe/stripe-brew/stripe
+# Use Paddle Sandbox environment for testing
+# 1. Switch to Sandbox in Paddle Dashboard (top-right toggle)
+# 2. Create test product and checkout
+# 3. Use test card numbers from Paddle docs
+# 4. Monitor webhooks in Dashboard → Developer Tools → Event Logs
 
-# Login
-stripe login
-
-# Listen to webhooks (for local testing)
-stripe listen --forward-to localhost:3000/api/webhooks/stripe
-
-# Trigger test events
-stripe trigger checkout.session.completed
+# Test Cards (Sandbox):
+# Success: 4242 4242 4242 4242
+# Decline: 4000 0000 0000 0002
 ```
 
 ---
@@ -394,12 +410,13 @@ Currently, the system is in **mock mode** for development:
 ### Production Testing
 
 **Pre-launch Checklist:**
-- [ ] Stripe account verified
-- [ ] Products and prices created
+- [ ] Paddle account created and approved
+- [ ] Products and prices created in Paddle
+- [ ] Hosted Checkout configured
 - [ ] Webhook endpoint configured
-- [ ] Environment variables set
+- [ ] Environment variables set in Vercel
 - [ ] Test checkout flow with test card: `4242 4242 4242 4242`
-- [ ] Verify webhook delivery in Stripe Dashboard
+- [ ] Verify webhook delivery in Paddle Dashboard → Event Logs
 - [ ] Test license activation in CLI
 - [ ] Test seat limits (activate on multiple machines)
 - [ ] Test subscription cancellation
@@ -425,10 +442,11 @@ Decline: 4000 0000 0000 0002
 
 **Vercel Environment Variables:**
 ```
-STRIPE_SECRET_KEY=sk_live_xxx
-STRIPE_WEBHOOK_SECRET=whsec_xxx
-STRIPE_PRICE_TEAM_MONTHLY=price_1Xxx...
-STRIPE_PRICE_TEAM_YEARLY=price_1Yyy...
+PADDLE_VENDOR_ID=12345
+PADDLE_API_KEY=xxx
+PADDLE_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----...
+PADDLE_CHECKOUT_URL_TEAM=https://buy.paddle.com/product/xxx
+PADDLE_PRODUCT_ID_TEAM=pro_team
 ```
 
 ### 2. Deploy License Database
@@ -454,51 +472,42 @@ npm install @libsql/client
 # Update license.service.ts to use Turso client
 ```
 
-### 3. Enable Real Stripe Integration
+### 3. Enable Real Paddle Integration
 
 **Replace Mock Code:**
 
 In `site/app/api/checkout/route.ts`:
 ```typescript
-// Uncomment real Stripe code:
-const stripe = require('stripe')(stripeSecretKey);
+// Already implemented - just need to set environment variables:
+// PADDLE_VENDOR_ID, PADDLE_CHECKOUT_URL_TEAM
 
-const session = await stripe.checkout.sessions.create({
-  mode: 'subscription',
-  payment_method_types: ['card'],
-  line_items: [{ price: stripePriceId, quantity: 1 }],
-  customer_email: email,
-  success_url: `${request.nextUrl.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-  cancel_url: `${request.nextUrl.origin}/pricing`,
-  metadata: { tier: 'team' },
-  allow_promotion_codes: true,
-});
-
-return NextResponse.json({
-  sessionId: session.id,
-  url: session.url,
-});
+// Code uses PaddleService.getCheckoutUrl() which returns:
+const url = new URL(paddleCheckoutUrl);
+url.searchParams.set('passthrough', passthrough);
+if (email) url.searchParams.set('email', email);
+return NextResponse.json({ url: url.toString() });
 ```
 
-In `site/app/api/webhooks/stripe/route.ts`:
+In `site/app/api/webhooks/paddle/route.ts`:
 ```typescript
 // Uncomment real webhook handling
-const stripe = require('stripe')(stripeSecretKey);
-
-let event;
-try {
-  event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
-} catch (err: any) {
-  return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-}
-
+const { PaddleService } = await import('@/modules/license/paddle.service');
 const { LicenseService } = await import('@/modules/license/license.service');
-const { StripeService } = await import('@/modules/license/stripe.service');
 
 const licenseService = new LicenseService();
-const stripeService = new StripeService(stripeSecretKey, webhookSecret, licenseService);
+const paddleService = new PaddleService(
+  paddleVendorId,
+  process.env.PADDLE_API_KEY,
+  paddlePublicKey,
+  licenseService
+);
 
-const result = await stripeService.handleWebhook(body, signature);
+const result = await paddleService.handleWebhook(payload);
+
+return NextResponse.json({
+  received: true,
+  handled: result.handled,
+});
 ```
 
 In `site/app/api/license/verify/route.ts`:
@@ -639,17 +648,19 @@ POSTMARK_API_KEY=xxx
 Hệ thống license đã hoàn chỉnh với:
 
 ✅ **Database:** SQLite với licenses + license_machines tables
-✅ **API Endpoints:** /checkout, /webhooks/stripe, /license/verify
+✅ **API Endpoints:** /checkout, /webhooks/paddle, /license/verify
 ✅ **CLI Command:** `ccg activate`
 ✅ **Success Page:** `/success` với license key display
-✅ **Stripe Integration:** Ready for production (hiện tại mock mode)
+✅ **Paddle Integration:** Complete - Merchant of Record handles VAT/tax automatically
 
 **Next Steps:**
-1. Add Stripe API keys to Vercel
-2. Test checkout flow với test cards
-3. Deploy và verify webhooks hoạt động
-4. Set up email service (Resend)
-5. Launch! 🚀
+1. Create Paddle account and wait for approval
+2. Set up product and Hosted Checkout in Paddle Dashboard
+3. Add Paddle environment variables to Vercel
+4. Test checkout flow with Paddle Sandbox
+5. Configure webhook endpoint in Paddle
+6. Set up email service (Resend)
+7. Launch! 🚀
 
 ---
 

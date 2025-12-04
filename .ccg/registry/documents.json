@@ -869,9 +869,44 @@
       "description": "<!DOCTYPE html>",
       "tags": [],
       "linkedFiles": []
+    },
+    {
+      "id": "e961f292-4470-4364-8634-ecabf4fb3a7d",
+      "path": "c:\\CLAUDE-CODE-GUARDIAN\\README.md",
+      "name": "README.md",
+      "type": "readme",
+      "createdAt": "2025-12-04T14:20:29.067Z",
+      "updatedAt": "2025-12-04T14:20:29.068Z",
+      "hash": "e17c7fb4a004f3a77a3ceb7576029ca7",
+      "size": 2317,
+      "description": "> AI-powered code refactor engine for large repositories, built on Claude Code + MCP.",
+      "tags": [
+        "code guardian studio",
+        "what is code guardian studio?",
+        "quick start",
+        "install globally"
+      ],
+      "linkedFiles": []
+    },
+    {
+      "id": "eda2909a-76e9-4061-95b1-0d4ec6f5884e",
+      "path": "c:\\CLAUDE-CODE-GUARDIAN\\docs\\reports\\optimization-2025-12-04-dogfood-ccg-v3.1.md",
+      "name": "optimization-2025-12-04-dogfood-ccg-v3.1.md",
+      "type": "other",
+      "createdAt": "2025-12-04T12:50:07.697Z",
+      "updatedAt": "2025-12-04T12:50:07.697Z",
+      "hash": "5af23ea4d11e18741f64d0e790fa8a50",
+      "size": 486,
+      "description": "",
+      "tags": [
+        "guardian optimization report",
+        "next steps",
+        "recommended iterations"
+      ],
+      "linkedFiles": []
     }
   ],
-  "lastScanned": "2025-12-04T12:47:21.278Z",
+  "lastScanned": "2025-12-04T14:59:55.508Z",
   "locations": {
     "readme": "README.md",
     "docs": "docs",

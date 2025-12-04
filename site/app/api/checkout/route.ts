@@ -1,8 +1,8 @@
 /**
- * Stripe Checkout API
+ * Paddle Checkout API
  * POST /api/checkout
  *
- * Creates a Stripe Checkout session for Team/Enterprise purchases
+ * Returns Paddle Checkout URL for Team/Enterprise purchases
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -26,49 +26,33 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // For Team tier, create Stripe checkout session
-    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-    const stripePriceId = process.env.STRIPE_PRICE_TEAM_MONTHLY;
+    // For Team tier, return Paddle checkout URL
+    const paddleVendorId = process.env.PADDLE_VENDOR_ID;
+    const paddleCheckoutUrl = process.env.PADDLE_CHECKOUT_URL_TEAM;
 
-    if (!stripeSecretKey || !stripePriceId) {
+    if (!paddleVendorId || !paddleCheckoutUrl) {
       return NextResponse.json(
-        { error: 'Stripe not configured' },
+        { error: 'Paddle not configured' },
         { status: 500 }
       );
     }
 
-    // In real implementation, use Stripe SDK
-    // For now, return mock response for development
+    // Build Paddle checkout URL with passthrough data
+    const passthrough = JSON.stringify({
+      tier: 'team',
+      email: email,
+      successUrl: `${request.nextUrl.origin}/success`,
+      cancelUrl: `${request.nextUrl.origin}/pricing`,
+    });
 
-    // const stripe = require('stripe')(stripeSecretKey);
-    //
-    // const session = await stripe.checkout.sessions.create({
-    //   mode: 'subscription',
-    //   payment_method_types: ['card'],
-    //   line_items: [
-    //     {
-    //       price: stripePriceId,
-    //       quantity: 1,
-    //     },
-    //   ],
-    //   customer_email: email,
-    //   success_url: `${request.nextUrl.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-    //   cancel_url: `${request.nextUrl.origin}/pricing`,
-    //   metadata: {
-    //     tier: 'team',
-    //   },
-    //   allow_promotion_codes: true,
-    // });
-    //
-    // return NextResponse.json({
-    //   sessionId: session.id,
-    //   url: session.url,
-    // });
+    const url = new URL(paddleCheckoutUrl);
+    url.searchParams.set('passthrough', passthrough);
+    if (email) {
+      url.searchParams.set('email', email);
+    }
 
-    // Mock response for development
     return NextResponse.json({
-      sessionId: 'cs_test_mock',
-      url: `${request.nextUrl.origin}/success?session_id=cs_test_mock`,
+      url: url.toString(),
     });
   } catch (error: any) {
     console.error('Checkout error:', error);
