@@ -35,6 +35,12 @@ export function useScrollAnimation<T extends HTMLElement>(
               item.classList.add('animate-in')
             })
 
+            // Also add animate-in to all scroll-scale children
+            const scaleItems = entry.target.querySelectorAll('.scroll-scale')
+            scaleItems.forEach((item) => {
+              item.classList.add('animate-in')
+            })
+
             if (triggerOnce) {
               observer.unobserve(entry.target)
             }
@@ -44,6 +50,12 @@ export function useScrollAnimation<T extends HTMLElement>(
             // Remove from stagger-item children too
             const staggerItems = entry.target.querySelectorAll('.stagger-item')
             staggerItems.forEach((item) => {
+              item.classList.remove('animate-in')
+            })
+
+            // Remove from scroll-scale children too
+            const scaleItems = entry.target.querySelectorAll('.scroll-scale')
+            scaleItems.forEach((item) => {
               item.classList.remove('animate-in')
             })
           }
