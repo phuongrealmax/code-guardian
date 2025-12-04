@@ -12,6 +12,7 @@ import { ResourceModule } from '../modules/resource/index.js';
 import { WorkflowModule } from '../modules/workflow/index.js';
 import { TestingModule } from '../modules/testing/index.js';
 import { DocumentsModule } from '../modules/documents/index.js';
+import { LatentModule } from '../modules/latent/index.js';
 
 export interface Modules {
   memory: MemoryModule;
@@ -21,6 +22,7 @@ export interface Modules {
   workflow: WorkflowModule;
   testing: TestingModule;
   documents: DocumentsModule;
+  latent: LatentModule;
 }
 
 export abstract class HookHandler {

@@ -1,6 +1,6 @@
 // src/modules/workflow/workflow.service.ts
 
-import { writeFileSync, readFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
+import { writeFileSync, readFileSync, existsSync, readdirSync, mkdirSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { v4 as uuid } from 'uuid';
 import { WorkflowModuleConfig } from '../../core/types.js';
@@ -39,6 +39,11 @@ export class WorkflowService {
     }
 
     await this.loadTasks();
+
+    // Auto-cleanup old completed tasks (enabled by default)
+    if (this.config.autoCleanupEnabled !== false) {
+      await this.cleanupCompletedTasks();
+    }
 
     // Resume in-progress task if any
     const inProgress = Array.from(this.tasks.values()).find(t => t.status === 'in_progress');
@@ -400,5 +405,113 @@ export class WorkflowService {
 
   async loadPendingTasks(): Promise<Task[]> {
     return this.getPendingTasks();
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      CLEANUP
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Clean up old completed tasks based on config
+   * - Removes tasks older than retentionDays (default: 1 day)
+   * - Keeps only maxCompletedTasks most recent (default: 10)
+   */
+  async cleanupCompletedTasks(): Promise<number> {
+    const retentionDays = this.config.completedRetentionDays ?? 1;
+    const maxCompleted = this.config.maxCompletedTasks ?? 10;
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+    // Get completed tasks sorted by completion date (newest first)
+    const completedTasks = Array.from(this.tasks.values())
+      .filter(t => t.status === 'completed' || t.status === 'failed')
+      .sort((a, b) => {
+        const aDate = a.completedAt || a.updatedAt;
+        const bDate = b.completedAt || b.updatedAt;
+        return bDate.getTime() - aDate.getTime();
+      });
+
+    const tasksToDelete: string[] = [];
+
+    completedTasks.forEach((task, index) => {
+      const taskDate = task.completedAt || task.updatedAt;
+
+      // Delete if older than retention period OR exceeds max count
+      if (taskDate < cutoffDate || index >= maxCompleted) {
+        tasksToDelete.push(task.id);
+      }
+    });
+
+    // Delete tasks
+    for (const taskId of tasksToDelete) {
+      await this.deleteTask(taskId);
+    }
+
+    if (tasksToDelete.length > 0) {
+      this.logger.info(`Cleaned up ${tasksToDelete.length} old completed tasks`);
+    }
+
+    return tasksToDelete.length;
+  }
+
+  /**
+   * Delete a specific task by ID
+   */
+  async deleteTask(taskId: string): Promise<boolean> {
+    const task = this.tasks.get(taskId);
+    if (!task) return false;
+
+    // Remove from parent's subtasks if applicable
+    if (task.parentId) {
+      const parent = this.tasks.get(task.parentId);
+      if (parent) {
+        parent.subtasks = parent.subtasks.filter(id => id !== taskId);
+        await this.saveTask(parent);
+      }
+    }
+
+    // Delete file
+    const filePath = join(this.tasksDir, `${taskId}.json`);
+    if (existsSync(filePath)) {
+      unlinkSync(filePath);
+    }
+
+    // Remove from memory
+    this.tasks.delete(taskId);
+
+    if (this.currentTaskId === taskId) {
+      this.currentTaskId = null;
+    }
+
+    return true;
+  }
+
+  /**
+   * Clear all completed tasks
+   */
+  async clearCompletedTasks(): Promise<number> {
+    const completedTasks = Array.from(this.tasks.values())
+      .filter(t => t.status === 'completed' || t.status === 'failed');
+
+    for (const task of completedTasks) {
+      await this.deleteTask(task.id);
+    }
+
+    this.logger.info(`Cleared ${completedTasks.length} completed tasks`);
+    return completedTasks.length;
+  }
+
+  /**
+   * Clear all tasks (use with caution)
+   */
+  async clearAllTasks(): Promise<number> {
+    const count = this.tasks.size;
+
+    for (const taskId of this.tasks.keys()) {
+      await this.deleteTask(taskId);
+    }
+
+    this.logger.info(`Cleared all ${count} tasks`);
+    return count;
   }
 }

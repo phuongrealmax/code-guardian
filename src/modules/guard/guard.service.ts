@@ -15,13 +15,24 @@ import {
   RuleStatus,
 } from './guard.types.js';
 
-// Import rules
+// Import rules - Quality
 import { FakeTestRule } from './rules/fake-test.rule.js';
 import { DisabledFeatureRule } from './rules/disabled-feature.rule.js';
 import { EmptyCatchRule } from './rules/empty-catch.rule.js';
 import { EmojiCodeRule } from './rules/emoji-code.rule.js';
+
+// Import rules - Security (OWASP Top 10)
 import { SqlInjectionRule } from './rules/sql-injection.rule.js';
 import { HardcodedSecretsRule } from './rules/hardcoded-secrets.rule.js';
+import { XssVulnerabilityRule } from './rules/xss-vulnerability.rule.js';
+import { CommandInjectionRule } from './rules/command-injection.rule.js';
+import { PathTraversalRule } from './rules/path-traversal.rule.js';
+
+// Import rules - AI/LLM Security
+import { PromptInjectionRule } from './rules/prompt-injection.rule.js';
+
+// Import dynamic rule for custom configs
+import { DynamicRule } from './rules/dynamic.rule.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      GUARD SERVICE CLASS
@@ -35,6 +46,9 @@ export class GuardService {
   private validationsRun: number = 0;
   private totalIssuesFound: number = 0;
   private blockedCount: number = 0;
+
+  // Per-rule stats tracking
+  private ruleStats: Map<string, number> = new Map();
 
   constructor(
     private config: GuardModuleConfig,
@@ -82,10 +96,44 @@ export class GuardService {
       this.rules.push(new HardcodedSecretsRule());
     }
 
-    // TODO: Load custom rules from config.rules.customRules
+    if (this.config.rules.blockXss !== false) {
+      this.rules.push(new XssVulnerabilityRule());
+    }
+
+    if (this.config.rules.blockCommandInjection !== false) {
+      this.rules.push(new CommandInjectionRule());
+    }
+
+    if (this.config.rules.blockPathTraversal !== false) {
+      this.rules.push(new PathTraversalRule());
+    }
+
+    if (this.config.rules.blockPromptInjection !== false) {
+      this.rules.push(new PromptInjectionRule());
+    }
+
+    // Load custom rules from config
+    if (this.config.rules.customRules && this.config.rules.customRules.length > 0) {
+      for (const customRule of this.config.rules.customRules) {
+        try {
+          const dynamicRule = new DynamicRule(customRule);
+          if (dynamicRule.enabled) {
+            this.rules.push(dynamicRule);
+            this.logger.debug(`Loaded custom rule: ${customRule.name}`);
+          }
+        } catch (error) {
+          this.logger.warn(`Failed to load custom rule: ${customRule.name}`, error);
+        }
+      }
+    }
+
+    // Initialize per-rule stats
+    for (const rule of this.rules) {
+      this.ruleStats.set(rule.name, 0);
+    }
 
     this.initialized = true;
-    this.logger.info(`Guard module initialized with ${this.rules.length} rules`);
+    this.logger.info(`Guard module initialized with ${this.rules.length} rules (${this.config.rules.customRules?.length || 0} custom)`);
   }
 
   /**
@@ -131,6 +179,12 @@ export class GuardService {
       try {
         const ruleIssues = rule.validate(code, filename);
         issues.push(...ruleIssues);
+
+        // Track per-rule stats
+        if (ruleIssues.length > 0) {
+          const currentCount = this.ruleStats.get(rule.name) || 0;
+          this.ruleStats.set(rule.name, currentCount + ruleIssues.length);
+        }
       } catch (error) {
         this.logger.error(`Rule ${rule.name} failed:`, error);
       }
@@ -220,7 +274,7 @@ export class GuardService {
       name: r.name,
       enabled: r.enabled,
       category: r.category,
-      issuesFound: 0, // TODO: Track per-rule stats
+      issuesFound: this.ruleStats.get(r.name) || 0,
     }));
   }
 

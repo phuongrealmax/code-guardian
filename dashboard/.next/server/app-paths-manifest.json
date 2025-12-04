@@ -1,0 +1,11 @@
+{
+  "/page": "app/page.js",
+  "/memory/page": "app/memory/page.js",
+  "/workflow/page": "app/workflow/page.js",
+  "/agents/page": "app/agents/page.js",
+  "/guard/page": "app/guard/page.js",
+  "/latent/page": "app/latent/page.js",
+  "/documents/page": "app/documents/page.js",
+  "/processes/page": "app/processes/page.js",
+  "/settings/page": "app/settings/page.js"
+}

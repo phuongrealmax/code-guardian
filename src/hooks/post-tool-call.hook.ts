@@ -184,6 +184,18 @@ export class PostToolCallHook extends HookHandler {
       }
 
       // ═══════════════════════════════════════════════════════════
+      // STEP 6b: Auto-create Latent context for workflow tasks
+      // ═══════════════════════════════════════════════════════════
+      if (input.toolName === 'workflow_task_create') {
+        await this.autoCreateLatentContext(input);
+      }
+
+      // Complete latent context when task completes
+      if (input.toolName === 'workflow_task_complete') {
+        await this.autoCompleteLatentContext(input);
+      }
+
+      // ═══════════════════════════════════════════════════════════
       // STEP 7: Register document if applicable
       // ═══════════════════════════════════════════════════════════
       if (filename && this.isDocumentFile(filename)) {
@@ -360,5 +372,84 @@ export class PostToolCallHook extends HookHandler {
     const content = (input.toolInput.content || input.toolInput.new_str || '') as string;
     const lines = content.split('\n').length;
     return `${lines} lines, ${input.duration}ms`;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //              LATENT CHAIN MODE INTEGRATION
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Auto-create latent context when workflow task is created
+   * This enables token-efficient hidden-state reasoning for all tasks
+   */
+  private async autoCreateLatentContext(input: PostToolCallInput): Promise<void> {
+    try {
+      const taskName = (input.toolInput.name || 'unknown-task') as string;
+      const taskDescription = (input.toolInput.description || '') as string;
+      const taskId = `task-${Date.now()}`;
+
+      // Check if latent module is enabled
+      const latentConfig = await this.config.get('modules.latent') as { enabled?: boolean } | undefined;
+      if (!latentConfig?.enabled) {
+        return;
+      }
+
+      // Create latent context for this task
+      await this.modules.latent.getService().createContext({
+        taskId,
+        phase: 'analysis',
+        constraints: ['Follow task requirements', 'Maintain code quality'],
+        files: [],
+        agentId: 'workflow-hook',
+      });
+
+      // Update context with task info
+      await this.modules.latent.getService().updateContext({
+        taskId,
+        delta: {
+          decisions: [{
+            id: 'T001',
+            summary: taskName,
+            rationale: taskDescription || 'Task created via workflow',
+            phase: 'analysis',
+          }],
+        },
+      });
+
+      this.logger.debug(`Auto-created latent context for task: ${taskName}`);
+    } catch (error) {
+      this.logger.warn('Failed to auto-create latent context:', error);
+    }
+  }
+
+  /**
+   * Auto-complete latent context when workflow task completes
+   */
+  private async autoCompleteLatentContext(input: PostToolCallInput): Promise<void> {
+    try {
+      const taskId = (input.toolInput.taskId || '') as string;
+
+      // Check if latent module is enabled
+      const latentConfig = await this.config.get('modules.latent') as { enabled?: boolean } | undefined;
+      if (!latentConfig?.enabled) {
+        return;
+      }
+
+      // Try to complete any matching latent context
+      const contexts = await this.modules.latent.getService().listContexts();
+      const matchingContext = contexts.find(c =>
+        c.taskId.includes('task-') || c.taskId === taskId
+      );
+
+      if (matchingContext) {
+        await this.modules.latent.getService().completeTask(
+          matchingContext.taskId,
+          'Task completed via workflow'
+        );
+        this.logger.debug(`Auto-completed latent context: ${matchingContext.taskId}`);
+      }
+    } catch (error) {
+      this.logger.warn('Failed to auto-complete latent context:', error);
+    }
   }
 }

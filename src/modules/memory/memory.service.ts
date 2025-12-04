@@ -47,6 +47,13 @@ export class MemoryService {
     }
 
     try {
+      // Zero Retention Mode: Skip database persistence (GDPR compliance)
+      if (this.config.zeroRetention) {
+        this.logger.info('Memory module running in ZERO RETENTION mode - data will not persist');
+        this.initialized = true;
+        return;
+      }
+
       // Ensure directory exists
       const dbDir = dirname(this.config.persistPath);
       if (!existsSync(dbDir)) {
@@ -57,6 +64,11 @@ export class MemoryService {
       this.db = new Database(this.config.persistPath);
       this.createTables();
       await this.loadFromDb();
+
+      // Apply retention policy if configured
+      if (this.config.retentionDays) {
+        await this.applyRetentionPolicy();
+      }
 
       this.initialized = true;
       this.logger.info(`Memory module initialized with ${this.memories.size} items`);
@@ -536,5 +548,51 @@ export class MemoryService {
     }
 
     this.logger.debug(`Removed ${toRemove.length} memories to enforce limit`);
+  }
+
+  /**
+   * Apply retention policy - delete memories older than configured days
+   * GDPR/Compliance: Automatic data cleanup
+   */
+  private async applyRetentionPolicy(): Promise<void> {
+    if (!this.config.retentionDays || this.config.zeroRetention) {
+      return;
+    }
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - this.config.retentionDays);
+
+    const toDelete: string[] = [];
+
+    for (const [id, memory] of this.memories) {
+      if (memory.createdAt < cutoffDate) {
+        toDelete.push(id);
+      }
+    }
+
+    for (const id of toDelete) {
+      this.memories.delete(id);
+      if (this.db) {
+        this.db.prepare('DELETE FROM memories WHERE id = ?').run(id);
+      }
+    }
+
+    if (toDelete.length > 0) {
+      this.logger.info(`Retention policy: Deleted ${toDelete.length} memories older than ${this.config.retentionDays} days`);
+
+      this.eventBus.emit({
+        type: 'memory:forget',
+        timestamp: new Date(),
+        data: { action: 'retention_policy', count: toDelete.length },
+        source: 'MemoryService',
+      });
+    }
+  }
+
+  /**
+   * Check if running in zero retention mode
+   */
+  isZeroRetentionMode(): boolean {
+    return this.config.zeroRetention === true;
   }
 }

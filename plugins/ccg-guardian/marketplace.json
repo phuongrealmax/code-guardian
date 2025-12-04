@@ -1,0 +1,28 @@
+{
+  "$schema": "https://claude.ai/schemas/marketplace.json",
+  "name": "Claude Code Guardian",
+  "description": "Enterprise-grade MCP server with Memory, Guard, Multi-Agent, RAG, and Latent Chain Mode",
+  "version": "3.0.0",
+  "author": "anthropic-community",
+  "homepage": "https://github.com/anthropic-community/claude-code-guardian",
+  "plugins": [
+    {
+      "name": "ccg-guardian",
+      "description": "Core CCG functionality - Memory, Guard, Agents, Workflow",
+      "version": "3.0.0",
+      "source": {
+        "type": "github",
+        "repo": "anthropic-community/claude-code-guardian",
+        "path": "plugins/ccg-guardian"
+      },
+      "skills": ["ccg-guardian", "ccg-latent", "ccg-rag"],
+      "tags": ["mcp", "memory", "guard", "security", "workflow"]
+    }
+  ],
+  "categories": [
+    {
+      "name": "Development Tools",
+      "plugins": ["ccg-guardian"]
+    }
+  ]
+}

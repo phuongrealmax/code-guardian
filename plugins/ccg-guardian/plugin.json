@@ -1,0 +1,25 @@
+{
+  "name": "ccg-guardian",
+  "version": "3.0.0",
+  "description": "Claude Code Guardian - Enterprise-grade MCP server with Memory, Guard, Agents, RAG, and Latent Chain Mode",
+  "author": "anthropic-community",
+  "license": "MIT",
+  "repository": "https://github.com/anthropic-community/claude-code-guardian",
+  "skills": [
+    "ccg-guardian",
+    "ccg-latent",
+    "ccg-rag"
+  ],
+  "dependencies": {
+    "mcp": "@anthropic-community/claude-code-guardian"
+  },
+  "keywords": [
+    "mcp",
+    "memory",
+    "guard",
+    "security",
+    "rag",
+    "multi-agent",
+    "latent-chain"
+  ]
+}

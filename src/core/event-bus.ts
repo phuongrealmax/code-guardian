@@ -27,6 +27,7 @@ export type CCGEventType =
   | 'resource:warning'
   | 'resource:critical'
   | 'resource:checkpoint'
+  | 'resource:suggest:latent'
   // Test events
   | 'test:start'
   | 'test:complete'
@@ -48,7 +49,37 @@ export type CCGEventType =
   | 'agent:updated'
   | 'agent:removed'
   | 'agent:selected'
-  | 'agent:coordination:created';
+  | 'agent:coordination:created'
+  // Latent Chain Mode events
+  | 'latent:context:created'
+  | 'latent:context:updated'
+  | 'latent:phase:transition'
+  | 'latent:patch:applied'
+  | 'latent:task:completed'
+  | 'latent:validation:failed'
+  // Auto-Agent events
+  | 'auto-agent:task:decomposed'
+  | 'auto-agent:tool:routed'
+  | 'auto-agent:fix:started'
+  | 'auto-agent:fix:attempt'
+  | 'auto-agent:fix:success'
+  | 'auto-agent:fix:failed'
+  | 'auto-agent:fix:rollback'
+  | 'auto-agent:error:stored'
+  | 'auto-agent:error:recalled'
+  // TaskGraph events
+  | 'taskgraph:created'
+  | 'taskgraph:node:started'
+  | 'taskgraph:node:completed'
+  | 'taskgraph:node:failed'
+  | 'taskgraph:completed'
+  // RAG events
+  | 'rag:index:started'
+  | 'rag:index:progress'
+  | 'rag:index:complete'
+  | 'rag:index:error'
+  | 'rag:search:started'
+  | 'rag:search:complete';
 
 export interface CCGEvent<T = unknown> {
   type: CCGEventType;

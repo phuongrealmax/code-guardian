@@ -1,0 +1,197 @@
+# GitLab CI/CD Template for Projects using Claude Code Guardian
+# Copy this file to: .gitlab-ci.yml
+
+image: node:20
+
+variables:
+  CCG_STRICT_MODE: "true"
+  NPM_CONFIG_CACHE: "$CI_PROJECT_DIR/.npm"
+
+cache:
+  paths:
+    - .npm/
+    - node_modules/
+
+stages:
+  - validate
+  - build
+  - test
+  - security
+  - deploy
+
+# ═══════════════════════════════════════════════════════════════
+# STAGE 1: Validate Code with CCG
+# ═══════════════════════════════════════════════════════════════
+ccg:validate:
+  stage: validate
+  script:
+    - npm ci
+    - npm install -g @anthropic-community/claude-code-guardian
+    - ccg init --ci
+    - |
+      # Validate changed files
+      if [ -n "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" ]; then
+        FILES=$(git diff --name-only origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME...HEAD -- '*.ts' '*.js' '*.tsx' '*.jsx' '*.py')
+        for file in $FILES; do
+          echo "Validating: $file"
+          ccg validate "$file" --strict || exit 1
+        done
+      fi
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+
+lint:
+  stage: validate
+  script:
+    - npm ci
+    - npm run lint
+    - npm run format:check
+  allow_failure: false
+
+typecheck:
+  stage: validate
+  script:
+    - npm ci
+    - npm run typecheck
+
+# ═══════════════════════════════════════════════════════════════
+# STAGE 2: Build
+# ═══════════════════════════════════════════════════════════════
+build:
+  stage: build
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+  needs:
+    - ccg:validate
+    - lint
+    - typecheck
+
+# ═══════════════════════════════════════════════════════════════
+# STAGE 3: Test
+# ═══════════════════════════════════════════════════════════════
+test:unit:
+  stage: test
+  script:
+    - npm ci
+    - npm test -- --coverage
+  coverage: '/All files[^|]*\|[^|]*\s+([\d\.]+)/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage/cobertura-coverage.xml
+    paths:
+      - coverage/
+  needs:
+    - build
+
+test:integration:
+  stage: test
+  script:
+    - npm ci
+    - npm run test:integration
+  needs:
+    - build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+
+ccg:test-analysis:
+  stage: test
+  script:
+    - npm ci
+    - npm install -g @anthropic-community/claude-code-guardian
+    - ccg check-tests ./tests --strict
+  needs:
+    - build
+  allow_failure: false
+
+# ═══════════════════════════════════════════════════════════════
+# STAGE 4: Security
+# ═══════════════════════════════════════════════════════════════
+security:audit:
+  stage: security
+  script:
+    - npm ci
+    - npm audit --audit-level=high
+  allow_failure: true
+
+security:ccg-scan:
+  stage: security
+  script:
+    - npm ci
+    - npm install -g @anthropic-community/claude-code-guardian
+    - |
+      # Run comprehensive security scan
+      ccg guard --rules sql-injection,hardcoded-secrets,xss-vulnerability,command-injection,path-traversal,prompt-injection --strict
+  artifacts:
+    reports:
+      codequality: ccg-report.json
+    when: always
+  needs:
+    - build
+
+sast:
+  stage: security
+  image: registry.gitlab.com/security-products/sast:latest
+  script:
+    - /analyzer run
+  artifacts:
+    reports:
+      sast: gl-sast-report.json
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+
+dependency_scanning:
+  stage: security
+  image: registry.gitlab.com/security-products/dependency-scanning:latest
+  script:
+    - /analyzer run
+  artifacts:
+    reports:
+      dependency_scanning: gl-dependency-scanning-report.json
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+
+# ═══════════════════════════════════════════════════════════════
+# STAGE 5: Deploy (Example)
+# ═══════════════════════════════════════════════════════════════
+deploy:staging:
+  stage: deploy
+  script:
+    - echo "Deploying to staging..."
+    # Add your deployment script here
+  environment:
+    name: staging
+    url: https://staging.example.com
+  needs:
+    - test:unit
+    - security:ccg-scan
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      when: manual
+
+deploy:production:
+  stage: deploy
+  script:
+    - echo "Deploying to production..."
+    # Add your deployment script here
+  environment:
+    name: production
+    url: https://example.com
+  needs:
+    - test:unit
+    - test:integration
+    - security:ccg-scan
+    - security:audit
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"'
+      when: manual

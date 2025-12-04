@@ -1,0 +1,260 @@
+// src/modules/code-optimizer/code-optimizer.service.ts
+import { scanRepository } from './repo-scanner.js';
+import { computeMetrics } from './metrics.js';
+import { selectHotspots } from './hotspots.js';
+import { buildRefactorPlan } from './refactor-plan.js';
+import { generateReport as generateReportFn } from './report-generator.js';
+import { DEFAULT_CODE_OPTIMIZER_CONFIG, } from './types.js';
+// ═══════════════════════════════════════════════════════════════
+//                      CODE OPTIMIZER SERVICE
+// ═══════════════════════════════════════════════════════════════
+export class CodeOptimizerService {
+    config;
+    logger;
+    eventBus;
+    projectRoot;
+    // Cache
+    lastScan;
+    cachedMetrics = new Map();
+    activeOptimizations = new Set();
+    constructor(config, eventBus, logger, projectRoot = process.cwd()) {
+        this.config = { ...DEFAULT_CODE_OPTIMIZER_CONFIG, ...config };
+        this.eventBus = eventBus;
+        this.logger = logger;
+        this.projectRoot = projectRoot;
+    }
+    // ═══════════════════════════════════════════════════════════════
+    //                      LIFECYCLE
+    // ═══════════════════════════════════════════════════════════════
+    async initialize() {
+        if (!this.config.enabled) {
+            this.logger.info('Code Optimizer module is disabled');
+            return;
+        }
+        this.logger.info('Code Optimizer service initialized');
+    }
+    async shutdown() {
+        this.cachedMetrics.clear();
+        this.activeOptimizations.clear();
+        this.logger.info('Code Optimizer service shutdown');
+    }
+    // ═══════════════════════════════════════════════════════════════
+    //                      REPOSITORY SCANNING
+    // ═══════════════════════════════════════════════════════════════
+    async scanRepository(input) {
+        this.logger.info('Scanning repository...', { rootPath: input.rootPath });
+        const mergedInput = {
+            rootPath: input.rootPath || this.projectRoot,
+            includePatterns: input.includePatterns,
+            excludePatterns: input.excludePatterns || this.config.defaultExcludePatterns,
+            maxFiles: input.maxFiles || this.config.maxFilesToScan,
+        };
+        const result = await scanRepository(mergedInput);
+        // Cache result
+        this.lastScan = result;
+        // Emit event
+        this.eventBus.emit({
+            type: 'code-optimizer:scan_complete',
+            timestamp: new Date(),
+            data: {
+                totalFiles: result.totalFiles,
+                totalLinesApprox: result.totalLinesApprox,
+            },
+            source: 'CodeOptimizerService',
+        });
+        this.logger.info(`Scan complete: ${result.totalFiles} files, ~${result.totalLinesApprox} lines`);
+        return result;
+    }
+    // ═══════════════════════════════════════════════════════════════
+    //                      METRICS
+    // ═══════════════════════════════════════════════════════════════
+    async computeMetrics(input) {
+        this.logger.info('Computing metrics...', { fileCount: input.files.length });
+        const mergedInput = {
+            files: input.files,
+            maxFileSizeBytes: input.maxFileSizeBytes || this.config.maxFileSizeBytes,
+        };
+        const result = await computeMetrics(mergedInput, this.projectRoot);
+        // Cache result
+        const cacheKey = input.files.sort().join(',');
+        if (this.config.cacheResults) {
+            this.cachedMetrics.set(cacheKey, result);
+            // Clear cache after TTL
+            setTimeout(() => {
+                this.cachedMetrics.delete(cacheKey);
+            }, this.config.cacheTTLSeconds * 1000);
+        }
+        // Emit event
+        this.eventBus.emit({
+            type: 'code-optimizer:metrics_computed',
+            timestamp: new Date(),
+            data: {
+                filesAnalyzed: result.files.length,
+                avgComplexity: result.aggregate.avgComplexityScore,
+            },
+            source: 'CodeOptimizerService',
+        });
+        this.logger.info(`Metrics computed: ${result.files.length} files, avg complexity ${result.aggregate.avgComplexityScore}`);
+        return result;
+    }
+    // ═══════════════════════════════════════════════════════════════
+    //                      HOTSPOTS
+    // ═══════════════════════════════════════════════════════════════
+    detectHotspots(input) {
+        this.logger.info('Detecting hotspots...', {
+            metricsCount: input.metrics.length,
+            strategy: input.strategy
+        });
+        const result = selectHotspots(input);
+        // Emit event
+        this.eventBus.emit({
+            type: 'code-optimizer:hotspots_detected',
+            timestamp: new Date(),
+            data: {
+                hotspotsFound: result.hotspots.length,
+                topReason: result.summary.topReason,
+            },
+            source: 'CodeOptimizerService',
+        });
+        this.logger.info(`Hotspots detected: ${result.hotspots.length}, top reason: ${result.summary.topReason}`);
+        return result;
+    }
+    // ═══════════════════════════════════════════════════════════════
+    //                      REFACTOR PLAN
+    // ═══════════════════════════════════════════════════════════════
+    generateRefactorPlan(input) {
+        this.logger.info('Generating refactor plan...', {
+            hotspotsCount: input.hotspots.length,
+            goal: input.goal
+        });
+        const result = buildRefactorPlan(input);
+        // Track active optimization
+        const sessionId = `opt-${Date.now()}`;
+        this.activeOptimizations.add(sessionId);
+        // Emit event
+        this.eventBus.emit({
+            type: 'code-optimizer:plan_generated',
+            timestamp: new Date(),
+            data: {
+                totalFiles: result.summary.totalFiles,
+                totalSteps: result.summary.totalSteps,
+                estimatedEffort: result.summary.estimatedTotalEffort,
+            },
+            source: 'CodeOptimizerService',
+        });
+        this.logger.info(`Plan generated: ${result.summary.totalFiles} files, ${result.summary.totalSteps} steps`);
+        return result;
+    }
+    // ═══════════════════════════════════════════════════════════════
+    //                      RECORD OPTIMIZATION
+    // ═══════════════════════════════════════════════════════════════
+    async recordOptimization(input) {
+        this.logger.info('Recording optimization...', { sessionId: input.sessionId });
+        // Remove from active optimizations
+        this.activeOptimizations.delete(input.sessionId);
+        // Emit event
+        this.eventBus.emit({
+            type: 'code-optimizer:optimization_recorded',
+            timestamp: new Date(),
+            data: {
+                sessionId: input.sessionId,
+                filesChanged: input.filesChanged.length,
+                testsStatus: input.testsStatus,
+            },
+            source: 'CodeOptimizerService',
+        });
+        // This would normally integrate with Memory module
+        // For now, just return success
+        return {
+            success: true,
+            message: `Optimization session ${input.sessionId} recorded. ${input.filesChanged.length} files changed.`,
+        };
+    }
+    // ═══════════════════════════════════════════════════════════════
+    //                      GENERATE REPORT
+    // ═══════════════════════════════════════════════════════════════
+    generateReport(input) {
+        this.logger.info('Generating optimization report...', { sessionId: input.sessionId });
+        const result = generateReportFn(input, this.projectRoot);
+        // Emit event
+        this.eventBus.emit({
+            type: 'code-optimizer:report_generated',
+            timestamp: new Date(),
+            data: {
+                sessionId: input.sessionId,
+                reportPath: result.reportPath,
+                hotspotsAnalyzed: result.summary.hotspotsAnalyzed,
+                filesChanged: result.summary.filesChanged,
+            },
+            source: 'CodeOptimizerService',
+        });
+        this.logger.info(`Report generated: ${result.reportPath}`);
+        return result;
+    }
+    // ═══════════════════════════════════════════════════════════════
+    //                      QUICK ANALYSIS (CONVENIENCE)
+    // ═══════════════════════════════════════════════════════════════
+    /**
+     * Quick analysis: scan -> metrics -> hotspots in one call
+     */
+    async quickAnalysis(options = {}) {
+        // Step 1: Scan
+        const scan = await this.scanRepository({
+            maxFiles: options.maxFiles || 1000,
+        });
+        // Step 2: Get source files for metrics
+        const sourceFiles = scan.files
+            .filter((f) => isSourceFile(f.extension))
+            .slice(0, 200)
+            .map((f) => f.path);
+        // Step 3: Compute metrics
+        const metrics = await this.computeMetrics({
+            files: sourceFiles,
+        });
+        // Step 4: Detect hotspots
+        const hotspots = this.detectHotspots({
+            metrics: metrics.files.map((f) => ({
+                path: f.path,
+                lines: f.lines,
+                maxNestingDepth: f.maxNestingDepth,
+                branchScore: f.branchScore,
+                todoCount: f.todoCount,
+                fixmeCount: f.fixmeCount,
+                complexityScore: f.complexityScore,
+            })),
+            maxResults: options.maxHotspots || 20,
+            strategy: options.strategy || 'mixed',
+        });
+        return { scan, metrics, hotspots };
+    }
+    // ═══════════════════════════════════════════════════════════════
+    //                      STATUS
+    // ═══════════════════════════════════════════════════════════════
+    getStatus() {
+        return {
+            enabled: this.config.enabled,
+            lastScan: this.lastScan
+                ? {
+                    timestamp: new Date(),
+                    rootPath: this.lastScan.rootPath,
+                    filesScanned: this.lastScan.totalFiles,
+                }
+                : undefined,
+            cachedMetrics: this.cachedMetrics.size,
+            activeOptimizations: this.activeOptimizations.size,
+        };
+    }
+}
+// ═══════════════════════════════════════════════════════════════
+//                      HELPERS
+// ═══════════════════════════════════════════════════════════════
+function isSourceFile(extension) {
+    const sourceExtensions = new Set([
+        '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
+        '.py', '.rb', '.go', '.rs', '.java', '.kt', '.swift',
+        '.c', '.cpp', '.h', '.hpp', '.cs', '.php',
+        '.vue', '.svelte',
+    ]);
+    return sourceExtensions.has(extension.toLowerCase());
+}
+//# sourceMappingURL=code-optimizer.service.js.map

@@ -16,5 +16,17 @@ export {
 export * from './config-manager.js';
 export * from './state-manager.js';
 
+// Audit Logger - Immutable audit trail for compliance
+export {
+  AuditLogger,
+  AuditEntry,
+  AuditAction,
+  AuditActor,
+  AuditResource,
+  AuditConfig,
+  getAuditLogger,
+  initAuditLogger,
+} from './audit-logger.js';
+
 // Utils (includes truncate from string-utils)
 export * from './utils/index.js';

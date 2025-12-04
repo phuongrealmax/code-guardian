@@ -82,6 +82,18 @@ export class WorkflowModule {
       case 'workflow_status':
         return this.service.getStatus();
 
+      case 'workflow_task_delete':
+        return this.service.deleteTask(args.taskId as string);
+
+      case 'workflow_cleanup': {
+        const clearAll = args.clearAll as boolean | undefined;
+        if (clearAll) {
+          return { deleted: await this.service.clearAllTasks(), type: 'all' };
+        } else {
+          return { deleted: await this.service.clearCompletedTasks(), type: 'completed' };
+        }
+      }
+
       default:
         throw new Error(`Unknown workflow tool: ${toolName}`);
     }

@@ -196,5 +196,33 @@ export function getWorkflowTools(): Tool[] {
         required: [],
       },
     },
+    {
+      name: 'workflow_task_delete',
+      description: 'Delete a specific task by ID',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          taskId: {
+            type: 'string',
+            description: 'Task ID to delete',
+          },
+        },
+        required: ['taskId'],
+      },
+    },
+    {
+      name: 'workflow_cleanup',
+      description: 'Clean up old completed tasks (manual trigger)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          clearAll: {
+            type: 'boolean',
+            description: 'If true, clear ALL tasks (use with caution). Default: false (only completed)',
+          },
+        },
+        required: [],
+      },
+    },
   ];
 }

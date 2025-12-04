@@ -116,6 +116,53 @@ export type {
   CoordinationResult,
 } from './agents/index.js';
 
+// Latent Module - Latent Chain Mode for hidden-state reasoning
+export { LatentModule, LatentService, DEFAULT_LATENT_CONFIG } from './latent/index.js';
+export type {
+  AgentLatentContext,
+  LatentPhase,
+  LatentDecision,
+  CodeMap,
+  TaskArtifacts,
+  ContextDelta,
+  LatentResponse,
+  LatentAction,
+  LatentActionType,
+  LatentModuleConfig,
+  LatentModuleStatus,
+  CreateContextParams,
+  UpdateContextParams,
+  ApplyPatchParams,
+  GetContextParams,
+  TransitionPhaseParams,
+  ContextHistoryEntry,
+  LatentContextWithHistory,
+  LatentValidationResult,
+} from './latent/index.js';
+
+// AutoAgent Module - Autonomous agent capabilities
+export { AutoAgentModule, AutoAgentService, DEFAULT_AUTO_AGENT_CONFIG } from './auto-agent/index.js';
+export type {
+  AutoAgentModuleConfig,
+  AutoAgentStatus,
+  DecomposeParams,
+  DecomposeResult,
+  TaskComplexityAnalysis,
+  SubtaskDefinition,
+  RouteToolParams,
+  ToolRouteResult,
+  SuggestedTool,
+  StartFixLoopParams,
+  FixLoopResult,
+  FixLoopStatus,
+  ErrorInfo,
+  FixAction,
+  StoreErrorParams,
+  RecallErrorsParams,
+  RecallErrorsResult,
+  ErrorMemoryEntry,
+} from './auto-agent/index.js';
+
 // ═══════════════════════════════════════════════════════════════
 //                      MODULE INTERFACE
 // ═══════════════════════════════════════════════════════════════
@@ -171,6 +218,8 @@ import {
   TestingModuleConfig,
   DocumentsModuleConfig,
   AgentsModuleConfig,
+  LatentModuleConfig,
+  AutoAgentModuleConfig,
 } from '../core/types.js';
 
 // Import module classes for use in initializeModules
@@ -182,6 +231,8 @@ import { WorkflowModule } from './workflow/index.js';
 import { TestingModule } from './testing/index.js';
 import { DocumentsModule } from './documents/index.js';
 import { AgentsModule } from './agents/index.js';
+import { LatentModule, DEFAULT_LATENT_CONFIG } from './latent/index.js';
+import { AutoAgentModule, DEFAULT_AUTO_AGENT_CONFIG } from './auto-agent/index.js';
 
 /**
  * Initialized modules interface for HookRouter
@@ -195,6 +246,8 @@ export interface InitializedModules {
   testing: TestingModule;
   documents: DocumentsModule;
   agents: AgentsModule;
+  latent: LatentModule;
+  autoAgent: AutoAgentModule;
 }
 
 /**
@@ -209,6 +262,8 @@ function getDefaultConfigs(ccgDir: string): {
   testing: TestingModuleConfig;
   documents: DocumentsModuleConfig;
   agents: AgentsModuleConfig;
+  latent: LatentModuleConfig;
+  autoAgent: AutoAgentModuleConfig;
 } {
   return {
     memory: {
@@ -282,6 +337,42 @@ function getDefaultConfigs(ccgDir: string): {
       autoReload: true,
       enableCoordination: true,
     },
+    latent: {
+      enabled: true,
+      maxContexts: 50,
+      autoMerge: true,
+      persist: true,
+      persistPath: join(ccgDir, 'latent-contexts.json'),
+      strictValidation: false,
+      maxSummaryLength: 200,
+      maxDecisions: 100,
+      cleanupAfterMs: 24 * 60 * 60 * 1000, // 24 hours
+    },
+    autoAgent: {
+      enabled: true,
+      decomposer: {
+        maxSubtasks: 10,
+        autoDecompose: true,
+        minComplexityForDecompose: 4,
+      },
+      router: {
+        enabled: true,
+        routingRules: [],
+        fallbackAgent: undefined,
+      },
+      fixLoop: {
+        enabled: true,
+        maxRetries: 3,
+        retryDelayMs: 1000,
+        autoRollbackOnFail: true,
+      },
+      errorMemory: {
+        enabled: true,
+        maxErrors: 100,
+        deduplicateThreshold: 0.8,
+        autoRecall: true,
+      },
+    },
   };
 }
 
@@ -312,6 +403,7 @@ export async function initializeModules(
   const testingConfig = (await configManager.get('modules.testing') as TestingModuleConfig | null) || defaults.testing;
   const documentsConfig = (await configManager.get('modules.documents') as DocumentsModuleConfig | null) || defaults.documents;
   const agentsConfig = (await configManager.get('modules.agents') as AgentsModuleConfig | null) || defaults.agents;
+  const latentConfig = (await configManager.get('modules.latent') as LatentModuleConfig | null) || defaults.latent;
 
   // Initialize Memory Module
   const memoryModule = new MemoryModule(memoryConfig, eventBus, logger);
@@ -345,6 +437,15 @@ export async function initializeModules(
   const agentsModule = new AgentsModule(agentsConfig, eventBus, logger, projectRoot);
   await agentsModule.initialize();
 
+  // Initialize Latent Module (Latent Chain Mode)
+  const latentModule = new LatentModule(latentConfig, eventBus, logger, projectRoot);
+  await latentModule.initialize();
+
+  // Initialize AutoAgent Module
+  const autoAgentConfig = (await configManager.get('modules.autoAgent') as AutoAgentModuleConfig | null) || defaults.autoAgent;
+  const autoAgentModule = new AutoAgentModule(autoAgentConfig, eventBus, logger);
+  await autoAgentModule.initialize();
+
   logger.info('All CCG modules initialized');
 
   return {
@@ -356,6 +457,8 @@ export async function initializeModules(
     testing: testingModule,
     documents: documentsModule,
     agents: agentsModule,
+    latent: latentModule,
+    autoAgent: autoAgentModule,
   };
 }
 
@@ -371,4 +474,6 @@ export async function shutdownModules(modules: InitializedModules): Promise<void
   await modules.testing.shutdown();
   await modules.documents.shutdown();
   await modules.agents.shutdown();
+  await modules.latent.shutdown();
+  await modules.autoAgent.shutdown();
 }

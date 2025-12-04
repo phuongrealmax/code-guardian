@@ -44,7 +44,8 @@ export type RuleCategory =
   | 'security'     // Security-related rules
   | 'quality'      // Code quality rules
   | 'convention'   // Coding conventions
-  | 'performance'; // Performance rules
+  | 'performance'  // Performance rules
+  | 'custom';      // User-defined custom rules
 
 // ═══════════════════════════════════════════════════════════════
 //                      VALIDATION TYPES

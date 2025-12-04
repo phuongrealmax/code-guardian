@@ -38,6 +38,49 @@ export interface ModulesConfig {
   documents: DocumentsModuleConfig;
   workflow: WorkflowModuleConfig;
   agents: AgentsModuleConfig;
+  latent: LatentModuleConfig;
+  autoAgent: AutoAgentModuleConfig;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                      AUTO-AGENT MODULE CONFIG
+// ═══════════════════════════════════════════════════════════════
+
+export interface AutoAgentModuleConfig {
+  enabled: boolean;
+
+  decomposer: {
+    maxSubtasks: number;
+    autoDecompose: boolean;
+    minComplexityForDecompose: number;
+  };
+
+  router: {
+    enabled: boolean;
+    routingRules: Array<{
+      id: string;
+      name: string;
+      pattern: string;
+      matchType: 'keyword' | 'regex' | 'file_pattern' | 'domain';
+      tools: string[];
+      priority: number;
+    }>;
+    fallbackAgent?: string;
+  };
+
+  fixLoop: {
+    enabled: boolean;
+    maxRetries: number;
+    retryDelayMs: number;
+    autoRollbackOnFail: boolean;
+  };
+
+  errorMemory: {
+    enabled: boolean;
+    maxErrors: number;
+    deduplicateThreshold: number;
+    autoRecall: boolean;
+  };
 }
 
 export interface MemoryModuleConfig {
@@ -46,6 +89,8 @@ export interface MemoryModuleConfig {
   autoSave: boolean;
   persistPath: string;
   compressionEnabled: boolean;
+  zeroRetention?: boolean;        // GDPR: Don't persist to disk, memory only
+  retentionDays?: number;         // Auto-delete memories older than N days
 }
 
 export interface GuardModuleConfig {
@@ -55,13 +100,24 @@ export interface GuardModuleConfig {
 }
 
 export interface GuardRules {
+  // Quality rules
   blockFakeTests: boolean;
   blockDisabledFeatures: boolean;
   blockEmptyCatch: boolean;
   blockEmojiInCode: boolean;
   blockSwallowedExceptions: boolean;
-  blockSqlInjection?: boolean;        // Default: true
-  blockHardcodedSecrets?: boolean;    // Default: true
+
+  // Security rules - OWASP Top 10 (default: true)
+  blockSqlInjection?: boolean;        // CWE-89: SQL Injection
+  blockHardcodedSecrets?: boolean;    // CWE-798: Hardcoded Credentials
+  blockXss?: boolean;                 // CWE-79: Cross-site Scripting
+  blockCommandInjection?: boolean;    // CWE-78: OS Command Injection
+  blockPathTraversal?: boolean;       // CWE-22: Path Traversal
+
+  // AI/LLM Security rules (default: true)
+  blockPromptInjection?: boolean;     // Prompt injection detection
+
+  // Custom rules
   customRules?: CustomRule[];
 }
 
@@ -127,6 +183,10 @@ export interface WorkflowModuleConfig {
   autoTrackTasks: boolean;
   requireTaskForLargeChanges: boolean;
   largeChangeThreshold: number;
+  // Cleanup settings
+  autoCleanupEnabled?: boolean;         // Auto-cleanup completed tasks on session start
+  completedRetentionDays?: number;      // Keep completed tasks for N days (default: 1)
+  maxCompletedTasks?: number;           // Max completed tasks to keep (default: 10)
 }
 
 export interface AgentsModuleConfig {
@@ -136,6 +196,31 @@ export interface AgentsModuleConfig {
   autoReload: boolean;
   defaultAgent?: string;
   enableCoordination: boolean;
+}
+
+export interface LatentModuleConfig {
+  /** Whether module is enabled */
+  enabled: boolean;
+  /** Maximum contexts to keep in memory */
+  maxContexts: number;
+  /** Auto-merge context deltas */
+  autoMerge: boolean;
+  /** Persist contexts to disk */
+  persist: boolean;
+  /** Path for persisted contexts */
+  persistPath?: string;
+  /** Enable strict validation */
+  strictValidation: boolean;
+  /** Max summary length (chars) */
+  maxSummaryLength: number;
+  /** Max decisions per context */
+  maxDecisions: number;
+  /** Auto-cleanup completed contexts after (ms) */
+  cleanupAfterMs: number;
+  /** Auto-attach latent context when workflow task is active (MCP-First Mode) */
+  autoAttach?: boolean;
+  /** Tools that trigger auto-attach when called */
+  autoAttachTriggerTools?: string[];
 }
 
 // ═══════════════════════════════════════════════════════════════

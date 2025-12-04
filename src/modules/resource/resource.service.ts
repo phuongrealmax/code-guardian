@@ -119,6 +119,22 @@ export class ResourceService {
       });
     }
 
+    // Suggest Latent Chain Mode when tokens > 80%
+    if (percentage >= 80) {
+      warnings.push({
+        level: 'info',
+        message: `Consider using Latent Chain Mode for remaining tasks.`,
+        action: 'Use /ccg latent start to enable token-efficient mode (70-80% savings)',
+      });
+
+      // Emit event for Latent module integration
+      this.eventBus.emit({
+        type: 'resource:suggest:latent',
+        timestamp: new Date(),
+        data: { percentage, threshold: 80 },
+      });
+    }
+
     return warnings;
   }
 

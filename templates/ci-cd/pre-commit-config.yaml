@@ -1,0 +1,114 @@
+# Pre-commit hooks configuration for Claude Code Guardian
+# Copy this file to: .pre-commit-config.yaml
+# Install: pip install pre-commit && pre-commit install
+
+repos:
+  # ═══════════════════════════════════════════════════════════════
+  # Standard Pre-commit Hooks
+  # ═══════════════════════════════════════════════════════════════
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: no-commit-to-branch
+        args: ['--branch', 'main', '--branch', 'master']
+
+  # ═══════════════════════════════════════════════════════════════
+  # Security Checks
+  # ═══════════════════════════════════════════════════════════════
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.4.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
+        exclude: package-lock.json
+
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.6
+    hooks:
+      - id: bandit
+        args: ['-r', '-ll']
+        files: '\.py$'
+
+  # ═══════════════════════════════════════════════════════════════
+  # JavaScript/TypeScript
+  # ═══════════════════════════════════════════════════════════════
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v8.56.0
+    hooks:
+      - id: eslint
+        files: \.[jt]sx?$
+        types: [file]
+        additional_dependencies:
+          - eslint@8.56.0
+          - '@typescript-eslint/parser@6.19.0'
+          - '@typescript-eslint/eslint-plugin@6.19.0'
+
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        types_or: [javascript, jsx, ts, tsx, css, json, markdown]
+
+  # ═══════════════════════════════════════════════════════════════
+  # Claude Code Guardian Integration
+  # ═══════════════════════════════════════════════════════════════
+  - repo: local
+    hooks:
+      # CCG Code Validation
+      - id: ccg-validate
+        name: CCG Validate
+        entry: ccg validate --strict
+        language: system
+        files: \.(ts|js|tsx|jsx|py)$
+        pass_filenames: true
+
+      # CCG Security Scan
+      - id: ccg-security
+        name: CCG Security Scan
+        entry: bash -c 'ccg guard --rules sql-injection,hardcoded-secrets,xss-vulnerability,command-injection,path-traversal --strict -- "$@"'
+        language: system
+        files: \.(ts|js|tsx|jsx|py|php|rb|go|java)$
+        pass_filenames: true
+
+      # CCG Test Analysis (only for test files)
+      - id: ccg-test-check
+        name: CCG Test Analysis
+        entry: ccg check-tests
+        language: system
+        files: \.(test|spec)\.(ts|js|tsx|jsx)$
+        pass_filenames: true
+
+      # CCG Prompt Injection Check (for AI/LLM code)
+      - id: ccg-prompt-check
+        name: CCG Prompt Injection Check
+        entry: ccg guard --rules prompt-injection --strict
+        language: system
+        files: (ai|llm|prompt|chat|gpt|claude|agent)\.(ts|js|py)$
+        pass_filenames: true
+
+  # ═══════════════════════════════════════════════════════════════
+  # TypeScript
+  # ═══════════════════════════════════════════════════════════════
+  - repo: local
+    hooks:
+      - id: typescript-check
+        name: TypeScript Check
+        entry: npx tsc --noEmit
+        language: system
+        files: \.tsx?$
+        pass_filenames: false
+
+# ═══════════════════════════════════════════════════════════════
+# Configuration
+# ═══════════════════════════════════════════════════════════════
+default_install_hook_types: [pre-commit, commit-msg]
+fail_fast: false
+minimum_pre_commit_version: '3.0.0'

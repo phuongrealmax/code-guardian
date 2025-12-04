@@ -414,6 +414,141 @@ program
 program.addCommand(createHookCommand());
 
 // ═══════════════════════════════════════════════════════════════
+//                      CODE-OPTIMIZE COMMAND
+// ═══════════════════════════════════════════════════════════════
+
+program
+  .command('code-optimize')
+  .description('Analyze and optimize codebase using CCG Code Optimizer')
+  .option('-r, --report', 'Generate optimization report')
+  .option('-s, --strategy <strategy>', 'Scoring strategy (size, complexity, mixed)', 'mixed')
+  .option('-m, --max-files <number>', 'Maximum files to scan', '1000')
+  .option('-t, --max-hotspots <number>', 'Maximum hotspots to return', '20')
+  .option('-o, --output <path>', 'Custom report output path')
+  .option('-j, --json', 'Output results as JSON')
+  .option('--ci', 'CI mode - exit with error code if hotspots exceed threshold')
+  .option('--threshold <number>', 'Hotspot score threshold for CI mode', '50')
+  .action(async (options: {
+    report?: boolean;
+    strategy?: string;
+    maxFiles?: string;
+    maxHotspots?: string;
+    output?: string;
+    json?: boolean;
+    ci?: boolean;
+    threshold?: string;
+  }) => {
+    const cwd = process.cwd();
+    const ccgDir = join(cwd, '.ccg');
+
+    if (!existsSync(ccgDir)) {
+      console.error(chalk.red('\n  CCG not initialized. Run "ccg init" first.\n'));
+      process.exit(1);
+    }
+
+    console.log(chalk.blue('\n  CCG Code Optimizer\n'));
+    console.log(chalk.dim('  ═'.repeat(25)));
+
+    try {
+      // Dynamic import to avoid loading heavy modules
+      const { EventBus } = await import('../core/event-bus.js');
+      const { Logger } = await import('../core/logger.js');
+      const { CodeOptimizerService } = await import('../modules/code-optimizer/code-optimizer.service.js');
+
+      const eventBus = new EventBus();
+      const logger = new Logger('info', 'code-optimize');
+      const service = new CodeOptimizerService({}, eventBus, logger, cwd);
+      await service.initialize();
+
+      // Run quick analysis
+      console.log(chalk.dim('\n  Scanning repository...'));
+      const result = await service.quickAnalysis({
+        maxFiles: parseInt(options.maxFiles || '1000', 10),
+        maxHotspots: parseInt(options.maxHotspots || '20', 10),
+        strategy: (options.strategy as 'size' | 'complexity' | 'mixed') || 'mixed',
+      });
+
+      // Output results
+      if (options.json) {
+        console.log(JSON.stringify({
+          scan: {
+            totalFiles: result.scan.totalFiles,
+            totalLines: result.scan.totalLinesApprox,
+          },
+          metrics: {
+            filesAnalyzed: result.metrics.files.length,
+            avgComplexity: result.metrics.aggregate.avgComplexityScore,
+          },
+          hotspots: result.hotspots.hotspots,
+          summary: result.hotspots.summary,
+        }, null, 2));
+      } else {
+        console.log();
+        console.log(chalk.cyan('  SCAN RESULTS'));
+        console.log(`    Files: ${result.scan.totalFiles.toLocaleString()}`);
+        console.log(`    Lines: ~${result.scan.totalLinesApprox.toLocaleString()}`);
+        console.log();
+        console.log(chalk.cyan('  METRICS'));
+        console.log(`    Analyzed: ${result.metrics.files.length} source files`);
+        console.log(`    Avg Complexity: ${result.metrics.aggregate.avgComplexityScore.toFixed(1)}`);
+        console.log(`    TODOs: ${result.metrics.aggregate.totalTodos}`);
+        console.log(`    FIXMEs: ${result.metrics.aggregate.totalFixmes}`);
+        console.log();
+        console.log(chalk.cyan('  HOTSPOTS'));
+        console.log(`    Found: ${result.hotspots.summary.hotspotsFound}`);
+        console.log(`    Top Reason: ${result.hotspots.summary.topReason}`);
+        console.log();
+
+        // List top 5 hotspots
+        for (const h of result.hotspots.hotspots.slice(0, 5)) {
+          const scoreColor = h.score > 70 ? chalk.red : h.score > 50 ? chalk.yellow : chalk.green;
+          console.log(`    ${chalk.dim(`#${h.rank}`)} ${scoreColor(`[${h.score.toFixed(0)}]`)} ${h.path}`);
+          console.log(chalk.dim(`       ${h.suggestedGoal}: ${h.reasons.slice(0, 2).join(', ')}`));
+        }
+
+        if (result.hotspots.hotspots.length > 5) {
+          console.log(chalk.dim(`    ... and ${result.hotspots.hotspots.length - 5} more`));
+        }
+      }
+
+      // Generate report if requested
+      if (options.report) {
+        console.log(chalk.dim('\n  Generating report...'));
+        const sessionId = `cli-${Date.now()}`;
+        const reportResult = service.generateReport({
+          sessionId,
+          strategy: (options.strategy as 'size' | 'complexity' | 'mixed') || 'mixed',
+          scanResult: result.scan,
+          metricsBefore: result.metrics,
+          hotspots: result.hotspots,
+          outputPath: options.output,
+        });
+
+        console.log(chalk.green(`\n  Report saved: ${reportResult.reportPath}`));
+      }
+
+      // CI mode - check thresholds
+      if (options.ci) {
+        const threshold = parseInt(options.threshold || '50', 10);
+        const highScoreHotspots = result.hotspots.hotspots.filter(h => h.score >= threshold);
+
+        if (highScoreHotspots.length > 0) {
+          console.log(chalk.red(`\n  CI CHECK FAILED: ${highScoreHotspots.length} hotspots above threshold (${threshold})`));
+          process.exit(1);
+        } else {
+          console.log(chalk.green(`\n  CI CHECK PASSED: No hotspots above threshold (${threshold})`));
+        }
+      }
+
+      console.log();
+      await service.shutdown();
+    } catch (error) {
+      console.error(chalk.red('\n  Error:'), error);
+      process.exit(1);
+    }
+  });
+
+// ═══════════════════════════════════════════════════════════════
 //                      HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════
 

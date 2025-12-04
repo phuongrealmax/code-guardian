@@ -169,6 +169,13 @@ export class PreToolCallHook extends HookHandler {
         }
       }
 
+      // ═══════════════════════════════════════════════════════════
+      // STEP 6: Auto-attach latent context (MCP-First Mode)
+      // ═══════════════════════════════════════════════════════════
+      if (await this.shouldAutoAttachLatent(input.toolName)) {
+        await this.autoAttachLatentContext(input);
+      }
+
       const duration = Date.now() - startTime;
       this.logger.debug(`Pre-tool hook completed in ${duration}ms`);
 
@@ -318,5 +325,170 @@ export class PreToolCallHook extends HookHandler {
     ];
 
     return dangerousPatterns.some(pattern => pattern.test(command));
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //              AUTO-ATTACH LATENT CONTEXT (MCP-FIRST MODE)
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Determine if this tool call should auto-attach latent context
+   * Uses config's autoAttachTriggerTools list
+   */
+  private async shouldAutoAttachLatent(toolName: string): Promise<boolean> {
+    const latentConfig = await this.config.get('modules.latent') as {
+      enabled?: boolean;
+      autoAttach?: boolean;
+      autoAttachTriggerTools?: string[];
+    } | undefined;
+
+    if (!latentConfig?.enabled || latentConfig?.autoAttach === false) {
+      return false;
+    }
+
+    // Use configured trigger tools or fallback to defaults
+    const triggerTools = latentConfig.autoAttachTriggerTools || [
+      'guard_validate',
+      'guard_check_test',
+      'testing_run',
+      'testing_run_affected',
+      'write_file',
+      'edit_file',
+      'create_file',
+      'str_replace_editor',
+      'memory_store',
+      'workflow_task_start',
+    ];
+
+    return triggerTools.includes(toolName) || this.isWriteOperation(toolName);
+  }
+
+  /**
+   * Auto-attach latent context if:
+   * 1. Latent module is enabled and autoAttach is true
+   * 2. There's a current workflow task OR tool is a write operation
+   * 3. No existing latent context for this task
+   *
+   * MCP-First Mode: Ensures every significant action is tracked via MCP
+   */
+  private async autoAttachLatentContext(input: PreToolCallInput): Promise<void> {
+    try {
+      const latentConfig = await this.config.get('modules.latent') as {
+        enabled?: boolean;
+        autoAttach?: boolean;
+      } | undefined;
+
+      if (!latentConfig?.enabled || latentConfig?.autoAttach === false) {
+        return;
+      }
+
+      // Check if there's a current workflow task
+      const currentTask = this.modules.workflow.getCurrentTask();
+      const filename = this.extractFilename(input);
+
+      // Get latent service
+      const latentService = this.modules.latent.getService();
+      const existingContexts = await latentService.listContexts();
+
+      // Determine task ID - use workflow task if available, otherwise create from tool context
+      let taskId: string;
+      let taskName: string;
+
+      if (currentTask) {
+        taskId = `task-${currentTask.id.slice(0, 8)}`;
+        taskName = currentTask.name;
+      } else if (this.isWriteOperation(input.toolName) && filename) {
+        // Create task ID from filename for write operations without workflow task
+        const baseFilename = filename.split('/').pop() || filename;
+        taskId = `file-${baseFilename.replace(/[^a-zA-Z0-9]/g, '-').slice(0, 20)}`;
+        taskName = `Edit ${baseFilename}`;
+      } else {
+        // No task context available
+        return;
+      }
+
+      // Check if latent context already exists
+      const hasContext = existingContexts.some(c =>
+        c.taskId === taskId ||
+        (currentTask && (
+          c.taskId === currentTask.id ||
+          c.taskId.includes(currentTask.name.toLowerCase().replace(/\s+/g, '-'))
+        ))
+      );
+
+      if (hasContext) {
+        // Context exists - update it with new file info if available
+        if (filename) {
+          const existingContext = existingContexts.find(c =>
+            c.taskId === taskId ||
+            (currentTask && c.taskId.includes(currentTask.name.toLowerCase().replace(/\s+/g, '-')))
+          );
+          if (existingContext && !existingContext.codeMap.files.includes(filename)) {
+            await latentService.updateContext({
+              taskId: existingContext.taskId,
+              delta: {
+                codeMap: { files: [filename] },
+              },
+              agentId: 'pre-tool-hook',
+            });
+          }
+        }
+        return;
+      }
+
+      // Auto-create latent context (MCP-First Mode)
+      await latentService.createContext({
+        taskId,
+        phase: 'analysis',
+        constraints: [
+          'MCP-First Mode: All changes must go through MCP tools',
+          'Auto-attached context for tracking',
+          'Follow project conventions',
+        ],
+        files: filename ? [filename] : [],
+        agentId: 'pre-tool-hook',
+      });
+
+      // Add initial decision documenting the auto-attach
+      await latentService.updateContext({
+        taskId,
+        delta: {
+          decisions: [{
+            id: 'AUTO001',
+            summary: `Auto-attached for: ${taskName}`,
+            rationale: `MCP-First Mode triggered by ${input.toolName} call`,
+            phase: 'analysis',
+          }],
+          metadata: {
+            custom: {
+              autoAttached: true,
+              triggeredBy: input.toolName,
+              workflowTaskId: currentTask?.id,
+              initialFile: filename,
+            },
+          },
+        },
+      });
+
+      this.logger.info(`[MCP-First] Auto-attached latent context: ${taskId} for: ${taskName}`);
+
+      // Emit event for tracking
+      this.eventBus.emit({
+        type: 'latent:context:created',
+        timestamp: new Date(),
+        data: {
+          taskId,
+          workflowTaskId: currentTask?.id,
+          triggeredBy: input.toolName,
+          autoAttached: true,
+          mcpFirstMode: true,
+        },
+        source: 'PreToolCallHook',
+      });
+
+    } catch (error) {
+      // Don't fail the hook on auto-attach errors
+      this.logger.warn('Failed to auto-attach latent context:', error);
+    }
   }
 }
