@@ -1,7 +1,7 @@
 {
-  "name": "@anthropic-community/claude-code-guardian",
-  "version": "1.0.0",
-  "description": "Unified MCP server for Claude Code - Memory, Guard, Process, Testing & More",
+  "name": "codeguardian-studio",
+  "version": "3.1.0",
+  "description": "AI-powered code refactor engine for large repositories, built on Claude Code + MCP.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "type": "module",
@@ -21,21 +21,27 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": [
-    "claude",
+    "code-guardian",
+    "code-optimizer",
+    "refactoring",
+    "code-quality",
+    "technical-debt",
     "claude-code",
     "mcp",
     "model-context-protocol",
-    "ai",
-    "coding-assistant",
-    "memory",
-    "guard",
-    "testing"
+    "ai-refactor",
+    "code-analysis",
+    "hotspot-detection"
   ],
-  "author": "Community",
+  "author": "Mona <hello@codeguardian.studio>",
   "license": "MIT",
+  "homepage": "https://codeguardian.studio",
   "repository": {
     "type": "git",
-    "url": "https://github.com/anthropic-community/claude-code-guardian"
+    "url": "https://github.com/phuongrealmax/claude-code-guardian"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "engines": {
     "node": ">=18.0.0"
