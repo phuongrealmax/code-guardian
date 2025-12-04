@@ -6,17 +6,8 @@ export default function Home() {
       {/* Hero */}
       <section className="hero">
         <div className="container">
-          <span className="badge" style={{
-            display: 'inline-block',
-            background: 'rgba(88, 101, 242, 0.2)',
-            border: '1px solid var(--primary)',
-            padding: '6px 16px',
-            borderRadius: '50px',
-            fontSize: '0.875rem',
-            marginBottom: '16px',
-            color: 'var(--primary)'
-          }}>
-            ⭐ Trusted by 500+ developers
+          <span className="badge">
+            Trusted by 500+ developers
           </span>
           <h1>Turn Claude Code into a refactor engine for your biggest repos.</h1>
           <p>
@@ -129,7 +120,12 @@ export default function Home() {
 
           <div className="features-grid">
             <div className="feature-card">
-              <div style={{fontSize: '3rem', marginBottom: '16px'}}>🔍</div>
+              <div className="icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="11" cy="11" r="8"/>
+                  <path d="m21 21-4.35-4.35"/>
+                </svg>
+              </div>
               <h3>Scan & Analyze</h3>
               <p>
                 Map your entire codebase in seconds. Calculate complexity, nesting,
@@ -137,7 +133,11 @@ export default function Home() {
               </p>
             </div>
             <div className="feature-card">
-              <div style={{fontSize: '3rem', marginBottom: '16px'}}>🔧</div>
+              <div className="icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                </svg>
+              </div>
               <h3>Plan & Refactor</h3>
               <p>
                 Generate step-by-step refactor plans. AI-guided changes with human
@@ -145,7 +145,13 @@ export default function Home() {
               </p>
             </div>
             <div className="feature-card">
-              <div style={{fontSize: '3rem', marginBottom: '16px'}}>📊</div>
+              <div className="icon">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <line x1="18" x2="18" y1="20" y2="10"/>
+                  <line x1="12" x2="12" y1="20" y2="4"/>
+                  <line x1="6" x2="6" y1="20" y2="14"/>
+                </svg>
+              </div>
               <h3>Report & Track</h3>
               <p>
                 Markdown reports with before/after metrics. Log sessions for team
@@ -315,25 +321,8 @@ export default function Home() {
       </section>
 
       {/* Floating CTA */}
-      <a href="#get-started" className="floating-cta" style={{
-        position: 'fixed',
-        bottom: '24px',
-        right: '24px',
-        background: 'linear-gradient(135deg, #7c3aed, #5b21b6)',
-        color: 'white',
-        padding: '14px 28px',
-        borderRadius: '50px',
-        boxShadow: '0 4px 20px rgba(124, 58, 237, 0.4)',
-        textDecoration: 'none',
-        fontWeight: 600,
-        fontSize: '0.95rem',
-        transition: 'all 0.3s ease',
-        zIndex: 1000,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: '8px'
-      }}>
-        Start Free →
+      <a href="#get-started" className="floating-cta">
+        Get Started →
       </a>
 
       <Footer />

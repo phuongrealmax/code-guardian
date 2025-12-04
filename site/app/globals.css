@@ -1,16 +1,18 @@
 :root {
-  --primary: #8b5cf6;
-  --primary-light: #a78bfa;
-  --primary-dark: #7c3aed;
+  --primary: #ffffff;
+  --primary-muted: #e5e5e5;
+  --accent: #6b7280;
+  --accent-hover: #4b5563;
   --secondary: #10b981;
   --warning: #f59e0b;
   --error: #ef4444;
   --bg: #0a0a0a;
   --bg-elevated: #141414;
   --text: #ffffff;
-  --text-muted: #a1a1aa;
-  --border: #27272a;
-  --border-light: #3f3f46;
+  --text-muted: #9ca3af;
+  --text-subtle: #6b7280;
+  --border: #1f1f1f;
+  --border-light: #2a2a2a;
 }
 
 * {
@@ -109,7 +111,7 @@ body {
   transform: translateX(-50%);
   width: 1000px;
   height: 1000px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -118,10 +120,7 @@ body {
   font-weight: 800;
   margin-bottom: 24px;
   letter-spacing: -0.03em;
-  background: linear-gradient(135deg, #ffffff 0%, #a78bfa 50%, #8b5cf6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text);
   line-height: 1.1;
   position: relative;
   z-index: 1;
@@ -149,42 +148,34 @@ body {
 
 .btn {
   padding: 16px 32px;
-  border-radius: 12px;
+  border-radius: 8px;
   font-size: 1rem;
   font-weight: 600;
   text-decoration: none;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   border: none;
   cursor: pointer;
   letter-spacing: -0.01em;
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  color: white;
-  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3), 0 0 0 0 rgba(139, 92, 246, 0.5);
+  background: var(--text);
+  color: var(--bg);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.2);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
+  background: var(--primary-muted);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: transparent;
   color: var(--text);
   border: 1px solid var(--border-light);
-  backdrop-filter: blur(10px);
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: var(--primary);
-  transform: translateY(-2px);
+  border-color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 /* Sections */
@@ -200,6 +191,7 @@ section h2 {
   text-align: center;
   font-weight: 700;
   letter-spacing: -0.02em;
+  color: var(--text);
 }
 
 section .subtitle {
@@ -218,37 +210,17 @@ section .subtitle {
 }
 
 .feature-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 40px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   position: relative;
-  overflow: hidden;
-}
-
-.feature-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.5), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
 }
 
 .feature-card:hover {
-  transform: translateY(-4px);
   border-color: var(--border-light);
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(139, 92, 246, 0.1);
-}
-
-.feature-card:hover::before {
-  opacity: 1;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .feature-card h3 {
@@ -265,6 +237,27 @@ section .subtitle {
   font-weight: 400;
 }
 
+/* Icon styles */
+.icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+}
+
+.icon svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--text);
+  stroke-width: 2;
+  fill: none;
+}
+
 /* Code Block */
 .code-block {
   background: rgba(0, 0, 0, 0.4);
@@ -275,7 +268,6 @@ section .subtitle {
   font-size: 0.9375rem;
   overflow-x: auto;
   margin: 24px 0;
-  backdrop-filter: blur(10px);
   line-height: 1.6;
 }
 
@@ -295,10 +287,7 @@ section .subtitle {
 .stat-value {
   font-size: 3.5rem;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text);
   letter-spacing: -0.02em;
 }
 
@@ -366,48 +355,23 @@ section .subtitle {
 }
 
 .pricing-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px) saturate(180%);
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 40px;
   text-align: center;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   position: relative;
-  overflow: hidden;
-}
-
-.pricing-card::before {
-  content: '';
-  position: absolute;
-  top: -2px;
-  left: -2px;
-  right: -2px;
-  bottom: -2px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  border-radius: 20px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: -1;
 }
 
 .pricing-card.featured {
-  border-color: var(--primary);
-  transform: scale(1.05);
-}
-
-.pricing-card.featured::before {
-  opacity: 0.1;
+  border-color: var(--border-light);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .pricing-card:hover {
-  transform: translateY(-4px) scale(1.02);
   border-color: var(--border-light);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-}
-
-.pricing-card.featured:hover {
-  transform: translateY(-4px) scale(1.07);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .pricing-card h3 {
@@ -415,15 +379,13 @@ section .subtitle {
   margin-bottom: 12px;
   font-weight: 700;
   letter-spacing: -0.01em;
+  color: var(--text);
 }
 
 .pricing-card .price {
   font-size: 3rem;
   font-weight: 800;
-  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--text);
   margin: 20px 0;
   letter-spacing: -0.02em;
 }
@@ -443,7 +405,7 @@ section .subtitle {
 
 .pricing-card li::before {
   content: "✓ ";
-  color: var(--secondary);
+  color: var(--text);
   font-weight: 700;
   margin-right: 8px;
 }
@@ -491,22 +453,21 @@ footer a {
 }
 
 footer a:hover {
-  color: var(--primary);
+  color: var(--text);
 }
 
 /* Badge */
 .badge {
   display: inline-block;
-  background: rgba(139, 92, 246, 0.15);
-  border: 1px solid rgba(139, 92, 246, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-light);
   padding: 8px 20px;
   border-radius: 50px;
   font-size: 0.875rem;
   margin-bottom: 24px;
-  color: var(--primary-light);
-  font-weight: 600;
+  color: var(--text-muted);
+  font-weight: 500;
   letter-spacing: -0.01em;
-  backdrop-filter: blur(10px);
 }
 
 /* Floating CTA */
@@ -514,42 +475,23 @@ footer a:hover {
   position: fixed;
   bottom: 32px;
   right: 32px;
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  color: white;
+  background: var(--text);
+  color: var(--bg);
   padding: 16px 32px;
-  border-radius: 50px;
-  box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4), 0 0 0 0 rgba(139, 92, 246, 0.5);
+  border-radius: 8px;
   text-decoration: none;
   font-weight: 700;
   font-size: 0.9375rem;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   z-index: 1000;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   letter-spacing: -0.01em;
-  backdrop-filter: blur(20px);
 }
 
 .floating-cta:hover {
-  transform: translateY(-4px) scale(1.05);
-  box-shadow: 0 12px 40px rgba(139, 92, 246, 0.5), 0 0 60px rgba(139, 92, 246, 0.3);
-}
-
-.floating-cta:active {
-  transform: translateY(-2px) scale(1.02);
-}
-
-/* Animations */
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  background: var(--primary-muted);
 }
 
 /* Responsive */
@@ -601,14 +543,6 @@ footer a:hover {
 
   .pricing-grid {
     grid-template-columns: 1fr;
-  }
-
-  .pricing-card.featured {
-    transform: scale(1);
-  }
-
-  .pricing-card.featured:hover {
-    transform: translateY(-4px) scale(1.02);
   }
 
   .floating-cta {
