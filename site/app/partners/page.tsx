@@ -1,3 +1,10 @@
+import Footer from '../components/Footer'
+
+export const metadata = {
+  title: 'Partner Program — Code Guardian Studio',
+  description: 'Join the Code Guardian Studio partner program. Earn 30-40% recurring commission helping developers clean up their codebases.',
+}
+
 export default function Partners() {
   return (
     <main>
@@ -6,7 +13,7 @@ export default function Partners() {
         <div className="container">
           <h1>Partner Program</h1>
           <p>
-            Help developers clean up their hardest codebases with Claude Code Guardian —
+            Help developers clean up their hardest codebases with Code Guardian Studio —
             and earn recurring revenue along the way.
           </p>
           <div className="cta-buttons">
@@ -35,7 +42,7 @@ export default function Partners() {
               <div className="stat-label">Day Cookie</div>
             </div>
             <div className="stat">
-              <div className="stat-value">∞</div>
+              <div className="stat-value">Lifetime</div>
               <div className="stat-label">Recurring Revenue</div>
             </div>
           </div>
@@ -251,21 +258,7 @@ export default function Partners() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer>
-        <div className="container">
-          <p>
-            <strong>Claude Code Guardian</strong> — Enterprise-grade guardrails for AI-assisted development.
-          </p>
-          <p style={{marginTop: '16px'}}>
-            <a href="/">Home</a>
-            {' • '}
-            <a href="/case-study">Case Study</a>
-            {' • '}
-            <a href="https://github.com/anthropic-community/claude-code-guardian">GitHub</a>
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </main>
   )
 }

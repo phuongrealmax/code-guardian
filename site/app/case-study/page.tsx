@@ -1,3 +1,10 @@
+import Footer from '../components/Footer'
+
+export const metadata = {
+  title: 'Case Study: Dogfooding CCG — Code Guardian Studio',
+  description: 'How Code Guardian Studio analyzed itself: 68,000 lines, 212 files, 20 hotspots in under 1 minute.',
+}
+
 export default function CaseStudy() {
   return (
     <main>
@@ -6,7 +13,7 @@ export default function CaseStudy() {
         <div className="container">
           <h1>Case Study: Dogfooding CCG</h1>
           <p>
-            How Claude Code Guardian analyzed itself — 68,000 lines of code,
+            How Code Guardian Studio analyzed itself — 68,000 lines of code,
             212 files, 20 hotspots identified in under 1 minute.
           </p>
         </div>
@@ -264,28 +271,14 @@ export default function CaseStudy() {
           <div style={{marginTop: '32px'}}>
             <a href="/" className="btn btn-primary">Back to Home</a>
             {' '}
-            <a href="https://github.com/anthropic-community/claude-code-guardian" className="btn btn-secondary">
+            <a href="https://github.com/phuongrealmax/claude-code-guardian" className="btn btn-secondary">
               View on GitHub
             </a>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer>
-        <div className="container">
-          <p>
-            <strong>Claude Code Guardian</strong> — Enterprise-grade guardrails for AI-assisted development.
-          </p>
-          <p style={{marginTop: '16px'}}>
-            <a href="/">Home</a>
-            {' • '}
-            <a href="/partners">Partners</a>
-            {' • '}
-            <a href="https://github.com/anthropic-community/claude-code-guardian">GitHub</a>
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </main>
   )
 }

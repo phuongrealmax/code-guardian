@@ -1,3 +1,5 @@
+import Footer from './components/Footer'
+
 export default function Home() {
   return (
     <main>
@@ -6,7 +8,7 @@ export default function Home() {
         <div className="container">
           <h1>Turn Claude Code into a refactor engine for your biggest repos.</h1>
           <p>
-            Claude Code Guardian adds a Code Optimizer layer on top of Claude —
+            Code Guardian Studio adds a Code Optimizer layer on top of Claude —
             scanning your repo, finding hotspots, refactoring safely and generating
             human-readable reports in one command.
           </p>
@@ -224,33 +226,14 @@ export default function Home() {
             ccg code-optimize --report
           </div>
           <div style={{marginTop: '32px'}}>
-            <a href="https://github.com/anthropic-community/claude-code-guardian" className="btn btn-primary">
+            <a href="https://github.com/phuongrealmax/claude-code-guardian" className="btn btn-primary">
               View on GitHub
             </a>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer>
-        <div className="container">
-          <p>
-            <strong>Claude Code Guardian</strong> — Enterprise-grade guardrails for AI-assisted development.
-          </p>
-          <p style={{marginTop: '16px'}}>
-            <a href="https://github.com/anthropic-community/claude-code-guardian">GitHub</a>
-            {' • '}
-            <a href="https://npmjs.com/package/@anthropic-community/claude-code-guardian">npm</a>
-            {' • '}
-            <a href="/case-study">Case Study</a>
-            {' • '}
-            <a href="/partners">Partners</a>
-          </p>
-          <p style={{marginTop: '24px', fontSize: '0.875rem'}}>
-            Built with Claude. Protected by Guardian.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </main>
   )
 }

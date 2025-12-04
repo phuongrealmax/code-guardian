@@ -1,8 +1,23 @@
 import './globals.css'
+import Header from './components/Header'
 
 export const metadata = {
-  title: 'Claude Code Guardian — AI Refactoring for Large Codebases',
-  description: 'Turn Claude Code into a refactor engine. Scan repos, find hotspots, generate optimization reports.',
+  title: 'Code Guardian Studio — AI-Powered Code Refactor Engine',
+  description: 'Turn Claude Code into a refactor engine for large repositories. Scan repos, find hotspots, generate optimization reports. Built on Claude Code + MCP.',
+  keywords: 'code refactoring, AI code analysis, Claude Code, MCP, code optimization, technical debt',
+  authors: [{ name: 'Code Guardian Studio' }],
+  openGraph: {
+    title: 'Code Guardian Studio',
+    description: 'AI-powered code refactor engine for large repositories',
+    url: 'https://codeguardian.studio',
+    siteName: 'Code Guardian Studio',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Code Guardian Studio',
+    description: 'AI-powered code refactor engine for large repositories',
+  },
 }
 
 export default function RootLayout({
@@ -12,7 +27,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Header />
+        {children}
+      </body>
     </html>
   )
 }
