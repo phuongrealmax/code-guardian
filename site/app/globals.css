@@ -427,13 +427,13 @@ section .subtitle {
 }
 
 .pricing-card:hover {
-  transform: translateY(-4px) scale(1.02);
+  transform: translateY(-4px);
   border-color: var(--border-light);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
 }
 
 .pricing-card.featured:hover {
-  transform: translateY(-4px) scale(1.07);
+  transform: translateY(-4px) scale(1.05);
 }
 
 .pricing-card h3 {
