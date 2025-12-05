@@ -5,6 +5,10 @@
  *
  * Generates formatted markdown reports for optimization sessions.
  * Integrates with Documents module for registration and Memory for storage.
+ *
+ * License gating:
+ * - Free (dev): Basic report with current metrics and hotspots
+ * - Team/Enterprise: Advanced sections (Tech Debt Summary, Before vs After, ROI notes)
  */
 
 import * as fs from 'fs';
@@ -18,6 +22,65 @@ import {
   RefactorPlanOutput,
   ScanRepositoryOutput,
 } from './types.js';
+import type { SessionSnapshot } from './session-storage.js';
+
+// ═══════════════════════════════════════════════════════════════
+//                      LICENSE UTILITIES
+// ═══════════════════════════════════════════════════════════════
+
+type LicenseTier = 'dev' | 'team' | 'enterprise';
+
+interface LicenseConfig {
+  licenseKey: string;
+  tier: LicenseTier;
+  status: string;
+  activatedAt: number;
+  features: string[];
+}
+
+/**
+ * Get current license tier from config file
+ * Returns 'dev' (free) if no license is found
+ */
+function getCurrentLicenseTier(projectRoot: string): LicenseTier {
+  // Check project-level license first
+  const projectLicensePath = path.join(projectRoot, '.ccg', 'license.json');
+  if (fs.existsSync(projectLicensePath)) {
+    try {
+      const config = JSON.parse(fs.readFileSync(projectLicensePath, 'utf-8')) as LicenseConfig;
+      if (config.status === 'active') {
+        return config.tier;
+      }
+    } catch (e) {
+      // Ignore parse errors
+    }
+  }
+
+  // Check global license
+  const homeDir = process.env.HOME || process.env.USERPROFILE || '';
+  if (homeDir) {
+    const globalLicensePath = path.join(homeDir, '.ccg', 'license.json');
+    if (fs.existsSync(globalLicensePath)) {
+      try {
+        const config = JSON.parse(fs.readFileSync(globalLicensePath, 'utf-8')) as LicenseConfig;
+        if (config.status === 'active') {
+          return config.tier;
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+  }
+
+  return 'dev'; // Free tier default
+}
+
+/**
+ * Check if a tier has access to advanced reports
+ */
+function hasAdvancedReports(tier: LicenseTier): boolean {
+  return tier === 'team' || tier === 'enterprise';
+}
 
 // ═══════════════════════════════════════════════════════════════
 //                      REPORT GENERATOR
@@ -29,16 +92,20 @@ import {
 export function generateReport(
   input: GenerateReportInput,
   projectRoot: string,
-  previousSession?: any | null
+  previousSession?: SessionSnapshot | null
 ): GenerateReportOutput {
   const sections: ReportSection[] = [];
   const date = new Date().toISOString().split('T')[0];
   const repoName = input.repoName || path.basename(projectRoot);
 
+  // Check license tier for advanced features
+  const licenseTier = getCurrentLicenseTier(projectRoot);
+  const isAdvanced = hasAdvancedReports(licenseTier);
+
   // Header
   sections.push({
     title: 'header',
-    content: generateHeader(input.sessionId, repoName, date, input.strategy || 'mixed'),
+    content: generateHeader(input.sessionId, repoName, date, input.strategy || 'mixed', licenseTier),
   });
 
   // Overview Section
@@ -49,7 +116,26 @@ export function generateReport(
     });
   }
 
-  // Metrics Comparison (Before/After)
+  // ═══════════════════════════════════════════════════════════════
+  // TEAM+ ADVANCED SECTIONS: Tech Debt Summary + Before vs After
+  // ═══════════════════════════════════════════════════════════════
+  if (isAdvanced && input.hotspots && input.metricsBefore) {
+    // Tech Debt Summary (Team+ only)
+    sections.push({
+      title: 'Tech Debt Summary',
+      content: generateTechDebtSummary(input.hotspots, input.metricsBefore, previousSession),
+    });
+
+    // Before vs After comparison (Team+ only, when previous session exists)
+    if (previousSession) {
+      sections.push({
+        title: 'Before vs After',
+        content: generateBeforeAfterSection(previousSession, input.hotspots, input.metricsBefore),
+      });
+    }
+  }
+
+  // Metrics Section (basic for all, enhanced for Team+)
   if (input.metricsBefore || input.metricsAfter) {
     sections.push({
       title: 'Metrics',
@@ -95,10 +181,26 @@ export function generateReport(
     content: generateNextStepsSection(input.hotspots),
   });
 
+  // ROI Notes (Team+ only)
+  if (isAdvanced && previousSession) {
+    sections.push({
+      title: 'ROI Notes',
+      content: generateROISection(previousSession, input.hotspots, input.metricsBefore),
+    });
+  }
+
+  // Free tier upgrade prompt
+  if (!isAdvanced) {
+    sections.push({
+      title: 'Upgrade',
+      content: generateUpgradePrompt(),
+    });
+  }
+
   // Footer
   sections.push({
     title: 'footer',
-    content: generateFooter(),
+    content: generateFooter(licenseTier),
   });
 
   // Combine all sections
@@ -138,14 +240,16 @@ function generateHeader(
   sessionId: string,
   repoName: string,
   date: string,
-  strategy: string
+  strategy: string,
+  licenseTier: LicenseTier
 ): string {
-  return `# Guardian Optimization Report
+  const tierBadge = licenseTier === 'dev' ? '' : ` | **${licenseTier.toUpperCase()}** License`;
+  return `# Code Guardian Optimization Report
 
 **Repository**: ${repoName}
 **Session ID**: ${sessionId}
 **Date**: ${date}
-**Strategy**: ${strategy}
+**Strategy**: ${strategy}${tierBadge}
 
 ---`;
 }
@@ -333,12 +437,200 @@ function generateNextStepsSection(hotspots?: HotspotsOutput): string {
   return content;
 }
 
-function generateFooter(): string {
+// ═══════════════════════════════════════════════════════════════
+//                  TEAM+ ADVANCED SECTIONS
+// ═══════════════════════════════════════════════════════════════
+
+function generateTechDebtSummary(
+  currentHotspots: HotspotsOutput,
+  currentMetrics: MetricsOutput,
+  previousSession?: SessionSnapshot | null
+): string {
+  let content = `## Tech Debt Summary
+
+> This section is available with Team/Enterprise license.
+
+`;
+
+  // Calculate current totals
+  const currentHotspotCount = currentHotspots.summary.hotspotsFound;
+  const currentTotalScore = currentHotspots.hotspots.reduce((sum, h) => sum + h.score, 0);
+  const currentHighComplexityFiles = currentMetrics.files.filter(f => f.complexityScore > 50).length;
+  const currentLargeFiles = currentMetrics.files.filter(f => f.lines > 500).length;
+
+  if (previousSession) {
+    // Calculate deltas
+    const prevHotspotCount = previousSession.summary.totalHotspots;
+    const prevTotalScore = previousSession.hotspots.hotspots.reduce((sum, h) => sum + h.score, 0);
+    const prevHighComplexityFiles = previousSession.metrics.files.filter((f: any) => f.complexityScore > 50).length;
+    const prevLargeFiles = previousSession.metrics.files.filter((f: any) => f.lines > 500).length;
+
+    const hotspotDelta = currentHotspotCount - prevHotspotCount;
+    const scoreDelta = currentTotalScore - prevTotalScore;
+    const complexityDelta = currentHighComplexityFiles - prevHighComplexityFiles;
+    const sizeDelta = currentLargeFiles - prevLargeFiles;
+
+    const formatDelta = (delta: number): string => {
+      if (delta === 0) return '—';
+      const sign = delta > 0 ? '+' : '';
+      const color = delta > 0 ? '🔴' : '🟢';
+      return `${color} ${sign}${delta}`;
+    };
+
+    const formatPercent = (prev: number, curr: number): string => {
+      if (prev === 0) return 'N/A';
+      const pct = ((curr - prev) / prev) * 100;
+      const sign = pct > 0 ? '+' : '';
+      return `${sign}${pct.toFixed(0)}%`;
+    };
+
+    content += `### Comparison with Previous Session
+
+| Metric | Previous | Current | Delta | Change |
+|--------|----------|---------|-------|--------|
+| Hotspots | ${prevHotspotCount} | ${currentHotspotCount} | ${formatDelta(hotspotDelta)} | ${formatPercent(prevHotspotCount, currentHotspotCount)} |
+| Total Score | ${prevTotalScore.toFixed(0)} | ${currentTotalScore.toFixed(0)} | ${formatDelta(Math.round(scoreDelta))} | ${formatPercent(prevTotalScore, currentTotalScore)} |
+| High-complexity files (>50) | ${prevHighComplexityFiles} | ${currentHighComplexityFiles} | ${formatDelta(complexityDelta)} | ${formatPercent(prevHighComplexityFiles, currentHighComplexityFiles)} |
+| Large files (>500 LOC) | ${prevLargeFiles} | ${currentLargeFiles} | ${formatDelta(sizeDelta)} | ${formatPercent(prevLargeFiles, currentLargeFiles)} |
+
+*Previous session: ${previousSession.sessionId} (${new Date(previousSession.timestamp).toLocaleDateString()})*
+`;
+  } else {
+    content += `### Current State
+
+| Metric | Value |
+|--------|-------|
+| Total Hotspots | ${currentHotspotCount} |
+| Total Hotspot Score | ${currentTotalScore.toFixed(0)} |
+| High-complexity files (>50) | ${currentHighComplexityFiles} |
+| Large files (>500 LOC) | ${currentLargeFiles} |
+
+*This is your first analysis. Run another analysis after making improvements to see progress!*
+`;
+  }
+
+  return content;
+}
+
+function generateBeforeAfterSection(
+  previousSession: SessionSnapshot,
+  currentHotspots: HotspotsOutput,
+  currentMetrics: MetricsOutput
+): string {
+  let content = `## Before vs After
+
+> Track your progress over time with session comparisons.
+
+`;
+
+  const prevDate = new Date(previousSession.timestamp).toLocaleDateString();
+  const currDate = new Date().toLocaleDateString();
+
+  content += `| Aspect | Before (${prevDate}) | After (${currDate}) |
+|--------|----------------------|---------------------|
+| Files Analyzed | ${previousSession.summary.filesAnalyzed} | ${currentMetrics.files.length} |
+| Avg Complexity | ${previousSession.summary.avgComplexity.toFixed(1)} | ${currentMetrics.aggregate.avgComplexityScore.toFixed(1)} |
+| Hotspots | ${previousSession.summary.totalHotspots} | ${currentHotspots.summary.hotspotsFound} |
+| Top Hotspot Score | ${previousSession.summary.topHotspotScore.toFixed(1)} | ${currentHotspots.hotspots[0]?.score.toFixed(1) || 0} |
+`;
+
+  // Highlight improvements
+  const complexityImproved = currentMetrics.aggregate.avgComplexityScore < previousSession.summary.avgComplexity;
+  const hotspotsReduced = currentHotspots.summary.hotspotsFound < previousSession.summary.totalHotspots;
+
+  if (complexityImproved || hotspotsReduced) {
+    content += `\n### Improvements\n\n`;
+    if (complexityImproved) {
+      const reduction = previousSession.summary.avgComplexity - currentMetrics.aggregate.avgComplexityScore;
+      content += `- Complexity reduced by ${reduction.toFixed(1)} points\n`;
+    }
+    if (hotspotsReduced) {
+      const reduction = previousSession.summary.totalHotspots - currentHotspots.summary.hotspotsFound;
+      content += `- ${reduction} fewer hotspots\n`;
+    }
+  }
+
+  return content;
+}
+
+function generateROISection(
+  previousSession: SessionSnapshot,
+  currentHotspots?: HotspotsOutput,
+  currentMetrics?: MetricsOutput
+): string {
+  let content = `## ROI Notes
+
+> Understand the business value of your optimization efforts.
+
+`;
+
+  if (!currentHotspots || !currentMetrics) {
+    content += `_Complete an optimization session to see ROI estimates._\n`;
+    return content;
+  }
+
+  const hotspotsReduced = previousSession.summary.totalHotspots - currentHotspots.summary.hotspotsFound;
+  const complexityReduced = previousSession.summary.avgComplexity - currentMetrics.aggregate.avgComplexityScore;
+
+  // Estimate time savings (very rough estimates)
+  // Assume each hotspot addressed saves ~2 hours of future maintenance
+  // Assume each complexity point reduced saves ~15 minutes of review time
+  const estimatedHoursSaved = hotspotsReduced > 0 ? hotspotsReduced * 2 : 0;
+  const estimatedReviewMinutes = complexityReduced > 0 ? complexityReduced * 15 : 0;
+
+  content += `### Estimated Benefits
+
+`;
+
+  if (hotspotsReduced > 0) {
+    content += `- **${hotspotsReduced} hotspots addressed**: Estimated ~${estimatedHoursSaved} hours of future maintenance avoided\n`;
+  }
+
+  if (complexityReduced > 0) {
+    content += `- **Complexity reduced by ${complexityReduced.toFixed(1)}**: Easier code reviews, ~${Math.round(estimatedReviewMinutes)} minutes saved per review cycle\n`;
+  }
+
+  if (hotspotsReduced <= 0 && complexityReduced <= 0) {
+    content += `- No measurable improvement yet. Continue addressing hotspots to see benefits.\n`;
+  }
+
+  content += `
+### Tips for Maximizing ROI
+
+1. **Focus on high-score hotspots first** - they represent the biggest maintenance burden
+2. **Track progress weekly** - run \`ccg code-optimize --report\` regularly
+3. **Set team goals** - aim to reduce total hotspot score by 20% per sprint
+`;
+
+  return content;
+}
+
+function generateUpgradePrompt(): string {
+  return `## Unlock Advanced Reports
+
+> **Upgrade to Team** for powerful insights:
+>
+> - **Tech Debt Summary**: Track hotspots, complexity, and file metrics over time
+> - **Before vs After**: Visual comparisons between analysis sessions
+> - **ROI Notes**: Estimate time and cost savings from your improvements
+> - **Trend Analysis**: See your codebase health trajectory
+>
+> Visit [codeguardian.studio/pricing](https://codeguardian.studio/pricing) to upgrade.
+>
+> Or run \`ccg activate\` if you have a license key.
+`;
+}
+
+function generateFooter(licenseTier: LicenseTier): string {
+  const tierNote = licenseTier === 'dev'
+    ? '\n\n*Free tier - Upgrade to Team for advanced reports*'
+    : `\n\n*${licenseTier.charAt(0).toUpperCase() + licenseTier.slice(1)} license - Thank you for your support!*`;
+
   return `---
 
-*Generated by Claude Code Guardian v3.1 - Code Optimizer Module*
+*Generated by Code Guardian Studio v3.1 - Code Optimizer Module*
 
-*Report generated on: ${new Date().toISOString()}*`;
+*Report generated on: ${new Date().toISOString()}*${tierNote}`;
 }
 
 // ═══════════════════════════════════════════════════════════════

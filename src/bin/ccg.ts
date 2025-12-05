@@ -302,8 +302,10 @@ program
       console.log(chalk.dim('  Generating detailed report...\n'));
 
       const sessionId = `quickstart-${Date.now()}`;
+      const repoName = require('path').basename(cwd);
       const reportResult = service.generateReport({
         sessionId,
+        repoName,
         strategy: 'mixed',
         scanResult: result.scan,
         metricsBefore: result.metrics,
@@ -721,8 +723,10 @@ const codeOptimizeCmd = program
       if (options.report) {
         console.log(chalk.dim('\n  Generating report...'));
         const sessionId = `cli-${Date.now()}`;
+        const repoName = require('path').basename(cwd);
         const reportResult = service.generateReport({
           sessionId,
+          repoName,
           strategy: (options.strategy as 'size' | 'complexity' | 'mixed') || 'mixed',
           scanResult: result.scan,
           metricsBefore: result.metrics,
