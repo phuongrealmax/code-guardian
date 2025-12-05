@@ -22,7 +22,7 @@ import {
   RefactorPlanOutput,
   ScanRepositoryOutput,
 } from './types.js';
-import type { SessionSnapshot } from './session-storage.js';
+import { SessionStorage, type SessionSnapshot, type TechDebtIndexBreakdown } from './session-storage.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      LICENSE UTILITIES
@@ -117,9 +117,25 @@ export function generateReport(
   }
 
   // ═══════════════════════════════════════════════════════════════
-  // TEAM+ ADVANCED SECTIONS: Tech Debt Summary + Before vs After
+  // TEAM+ ADVANCED SECTIONS: Tech Debt Index + Summary + Before vs After
   // ═══════════════════════════════════════════════════════════════
-  if (isAdvanced && input.hotspots && input.metricsBefore) {
+  if (isAdvanced && input.hotspots && input.metricsBefore && input.scanResult) {
+    // Initialize session storage for trend data
+    const sessionStorage = new SessionStorage(projectRoot);
+
+    // Tech Debt Index (Team+ only)
+    sections.push({
+      title: 'Tech Debt Index',
+      content: generateTechDebtIndexSection(
+        input.hotspots,
+        input.metricsBefore,
+        input.scanResult,
+        previousSession,
+        sessionStorage,
+        repoName
+      ),
+    });
+
     // Tech Debt Summary (Team+ only)
     sections.push({
       title: 'Tech Debt Summary',
@@ -131,6 +147,15 @@ export function generateReport(
       sections.push({
         title: 'Before vs After',
         content: generateBeforeAfterSection(previousSession, input.hotspots, input.metricsBefore),
+      });
+    }
+
+    // Trend Chart (Team+ only, when multiple sessions exist)
+    const trendChart = sessionStorage.generateTrendChart(repoName, 5);
+    if (!trendChart.includes('Not enough data')) {
+      sections.push({
+        title: 'Trend',
+        content: `## Trend\n\n${trendChart}`,
       });
     }
   }
@@ -440,6 +465,117 @@ function generateNextStepsSection(hotspots?: HotspotsOutput): string {
 // ═══════════════════════════════════════════════════════════════
 //                  TEAM+ ADVANCED SECTIONS
 // ═══════════════════════════════════════════════════════════════
+
+function generateTechDebtIndexSection(
+  currentHotspots: HotspotsOutput,
+  currentMetrics: MetricsOutput,
+  scanResult: ScanRepositoryOutput,
+  previousSession: SessionSnapshot | null | undefined,
+  sessionStorage: SessionStorage,
+  repoName: string
+): string {
+  // Calculate current Tech Debt Index
+  const highComplexityFiles = currentMetrics.files.filter(f => f.complexityScore > 50).length;
+  const largeFiles = currentMetrics.files.filter(f => f.lines > 500).length;
+  const totalHotspotScore = currentHotspots.hotspots.reduce((sum, h) => sum + h.score, 0);
+
+  const currentIndex = sessionStorage.calculateTechDebtIndex(
+    currentHotspots.summary.hotspotsFound,
+    totalHotspotScore,
+    currentMetrics.aggregate.avgComplexityScore,
+    highComplexityFiles,
+    largeFiles,
+    currentMetrics.files.length,
+    scanResult.totalLinesApprox
+  );
+
+  // Get grade
+  let grade: string;
+  let gradeEmoji: string;
+  let interpretation: string;
+
+  if (currentIndex <= 20) {
+    grade = 'A';
+    gradeEmoji = '🟢';
+    interpretation = 'Excellent! Your codebase is well-maintained with minimal tech debt.';
+  } else if (currentIndex <= 40) {
+    grade = 'B';
+    gradeEmoji = '🟢';
+    interpretation = 'Good condition. A few areas could use attention, but overall healthy.';
+  } else if (currentIndex <= 60) {
+    grade = 'C';
+    gradeEmoji = '🟡';
+    interpretation = 'Fair. Tech debt is accumulating - consider allocating time for cleanup.';
+  } else if (currentIndex <= 80) {
+    grade = 'D';
+    gradeEmoji = '🟠';
+    interpretation = 'Poor. Significant tech debt is impacting maintainability. Prioritize refactoring.';
+  } else {
+    grade = 'F';
+    gradeEmoji = '🔴';
+    interpretation = 'Critical! High tech debt is likely causing bugs and slowing development.';
+  }
+
+  let content = `## Tech Debt Index
+
+> Your codebase health at a glance (Team/Enterprise feature)
+
+### Current Score
+
+| ${gradeEmoji} Grade **${grade}** | Index: **${currentIndex}/100** |
+|:---:|:---:|
+
+*${interpretation}*
+
+`;
+
+  // Calculate component breakdown
+  const hotspotCountScore = Math.min(currentHotspots.summary.hotspotsFound / 20, 1) * 20;
+  const hotspotScoreComponent = Math.min(totalHotspotScore / 1000, 1) * 20;
+  const hotspotComponent = Math.round(hotspotCountScore + hotspotScoreComponent);
+
+  const complexityBase = Math.min(Math.max(currentMetrics.aggregate.avgComplexityScore - 20, 0) / 30, 1) * 15;
+  const highComplexityPenalty = Math.min(highComplexityFiles / 10, 1) * 15;
+  const complexityComponent = Math.round(complexityBase + highComplexityPenalty);
+
+  const largeFileRatio = currentMetrics.files.length > 0 ? largeFiles / currentMetrics.files.length : 0;
+  const sizeComponent = Math.round(Math.min(largeFileRatio * 4, 1) * 20);
+
+  const debtDensity = scanResult.totalLinesApprox > 0
+    ? (currentHotspots.summary.hotspotsFound / (scanResult.totalLinesApprox / 1000))
+    : 0;
+  const densityComponent = Math.round(Math.min(debtDensity / 5, 1) * 10);
+
+  content += `### Score Breakdown
+
+| Component | Score | Max | Description |
+|-----------|-------|-----|-------------|
+| Hotspots | ${hotspotComponent} | 40 | Based on hotspot count and total score |
+| Complexity | ${complexityComponent} | 30 | Based on avg complexity and high-complexity files |
+| File Size | ${sizeComponent} | 20 | Based on large file ratio |
+| Debt Density | ${densityComponent} | 10 | Hotspots per 1000 LOC |
+| **Total** | **${currentIndex}** | **100** | Lower is better |
+
+`;
+
+  // Show delta if previous session exists
+  if (previousSession && previousSession.summary.techDebtIndex !== undefined) {
+    const prevIndex = previousSession.summary.techDebtIndex;
+    const delta = currentIndex - prevIndex;
+    const deltaEmoji = delta < 0 ? '📉' : delta > 0 ? '📈' : '➡️';
+    const deltaText = delta < 0 ? 'improved' : delta > 0 ? 'increased' : 'unchanged';
+
+    content += `### Change from Previous
+
+| Previous | Current | Delta |
+|----------|---------|-------|
+| ${prevIndex} | ${currentIndex} | ${deltaEmoji} ${delta > 0 ? '+' : ''}${delta} (${deltaText}) |
+
+`;
+  }
+
+  return content;
+}
 
 function generateTechDebtSummary(
   currentHotspots: HotspotsOutput,

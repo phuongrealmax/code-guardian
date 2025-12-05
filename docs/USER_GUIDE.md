@@ -276,6 +276,41 @@ Visual comparison between analysis sessions:
 - Highlights improvements automatically
 - Perfect for sprint retrospectives
 
+**Tech Debt Index (Team tier)**
+A single composite score (0-100) representing overall codebase health:
+
+| Grade | Index | Meaning |
+|-------|-------|---------|
+| A | 0-20 | Excellent - minimal tech debt |
+| B | 21-40 | Good - a few areas need attention |
+| C | 41-60 | Fair - debt accumulating |
+| D | 61-80 | Poor - prioritize refactoring |
+| F | 81-100 | Critical - major issues |
+
+The index is calculated from:
+- **Hotspot component (40%)**: Based on hotspot count and total score
+- **Complexity component (30%)**: Based on avg complexity and high-complexity files
+- **Size component (20%)**: Based on large file ratio
+- **Debt density (10%)**: Hotspots per 1000 lines of code
+
+**Trend Tracking**
+Team reports show your last 5 sessions with:
+- Visual trend chart (ASCII)
+- Direction indicator (improving/stable/degrading)
+- Index change over time
+
+Use the CLI to view trends:
+```bash
+# View latest session
+ccg report
+
+# View session summary
+ccg report --summary
+
+# View trend chart
+ccg report --trend
+```
+
 **ROI Notes**
 Understand business value:
 - Estimated hours saved from addressed hotspots
