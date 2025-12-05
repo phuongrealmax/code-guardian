@@ -65,10 +65,11 @@ export default function Footer() {
           <div>
             <h4 style={{marginBottom: '16px', fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary)'}}>Resources</h4>
             <div style={{display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.875rem'}}>
-              <a href="https://github.com/phuongrealmax/claude-code-guardian#readme" target="_blank" rel="noopener noreferrer">Documentation</a>
-              <a href="https://github.com/phuongrealmax/claude-code-guardian/issues" target="_blank" rel="noopener noreferrer">Support</a>
-              <Link href="/partners">Partner Program</Link>
+              <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/master/docs/USER_GUIDE.md" target="_blank" rel="noopener noreferrer">User Guide</a>
+              <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/master/docs/QUICKSTART.md" target="_blank" rel="noopener noreferrer">Quickstart</a>
+              <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/master/docs/MIGRATION_OPEN_CORE.md" target="_blank" rel="noopener noreferrer">Migration Guide</a>
               <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/master/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a>
+              <Link href="/partners">Partner Program</Link>
             </div>
           </div>
 

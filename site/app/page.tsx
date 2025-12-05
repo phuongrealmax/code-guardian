@@ -7,11 +7,12 @@ import { useScrollAnimation } from './hooks/useScrollAnimation'
 export default function Home() {
   const heroRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
   const statsRef = useScrollAnimation<HTMLElement>({ threshold: 0.3 })
-  const testimonialsRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
+  const personaRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
   const featuresRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
   const hotspotsRef = useScrollAnimation<HTMLElement>({ threshold: 0.3 })
   const howItWorksRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
   const pricingRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
+  const faqRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
 
   return (
     <main>
@@ -19,17 +20,18 @@ export default function Home() {
       <section ref={heroRef} className="hero scroll-fade-in">
         <div className="container">
           <span className="badge">
-            Trusted by 500+ developers
+            v4.0.0 — MIT Open-Core
           </span>
           <h1>Turn Claude Code into a refactor engine for your biggest repos.</h1>
           <p>
-            Code Guardian Studio adds a Code Optimizer layer on top of Claude —
-            scanning your repo, finding hotspots, refactoring safely and generating
-            human-readable reports in one command.
+            Free, local-first. Advanced tech-debt reports when your team is ready.
+          </p>
+          <p style={{fontSize: '0.9rem', opacity: 0.8, marginTop: '-8px'}}>
+            Dev tier runs fully offline. No license required.
           </p>
           <div className="cta-buttons">
-            <a href="#get-started" className="btn btn-primary">Get Started Free</a>
-            <a href="/case-study" className="btn btn-secondary">View Case Study</a>
+            <a href="#get-started" className="btn btn-primary">Install via npm</a>
+            <a href="https://github.com/phuongrealmax/claude-code-guardian" className="btn btn-secondary" target="_blank" rel="noopener noreferrer">View GitHub Repo</a>
           </div>
 
           {/* Trust Badges */}
@@ -51,23 +53,17 @@ export default function Home() {
             </span>
             <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-              100+ GitHub Stars
-            </span>
-            <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="16 18 22 12 16 6"/>
                 <polyline points="8 6 2 12 8 18"/>
               </svg>
-              Open Source
+              MIT Open-Core
             </span>
             <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              GDPR Ready
+              100% Offline (Dev)
             </span>
           </div>
         </div>
@@ -77,119 +73,117 @@ export default function Home() {
       <section ref={statsRef} className="scroll-fade-in">
         <div className="container">
           <p className="subtitle" style={{textAlign: 'center', marginBottom: '32px'}}>
-            Real results from our own codebase dogfooding
+            Real results from dogfooding CCG on itself
           </p>
           <div className="stats">
             <div className="stat">
-              <div className="stat-value">68k</div>
+              <div className="stat-value">75→68</div>
+              <div className="stat-label">Tech Debt Index</div>
+            </div>
+            <div className="stat">
+              <div className="stat-value">-9.3%</div>
+              <div className="stat-label">TDI Improvement</div>
+            </div>
+            <div className="stat">
+              <div className="stat-value">62k</div>
               <div className="stat-label">Lines Analyzed</div>
             </div>
             <div className="stat">
-              <div className="stat-value">212</div>
-              <div className="stat-label">Files Scanned</div>
-            </div>
-            <div className="stat">
-              <div className="stat-value">20</div>
-              <div className="stat-label">Hotspots Found</div>
-            </div>
-            <div className="stat">
-              <div className="stat-value">&lt;1min</div>
-              <div className="stat-label">Analysis Time</div>
+              <div className="stat-value">&lt;1s</div>
+              <div className="stat-label">Quickstart Time</div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section ref={testimonialsRef} className="scroll-fade-in">
+      {/* Built for Real Developer Workflows */}
+      <section ref={personaRef} className="scroll-fade-in" style={{background: 'rgba(255,255,255,0.02)'}}>
         <div className="container">
-          <h2>Loved by Developers</h2>
-          <p className="subtitle">What teams are saying about Code Guardian Studio</p>
+          <h2>Built for Real Developer Workflows</h2>
+          <p className="subtitle">No JSON wrangling. No complex setup. Just results.</p>
 
           <div className="features-grid">
-            <div className="feature-card stagger-item" style={{textAlign: 'left'}}>
-              <div style={{marginBottom: '8px', fontSize: '0.75rem', opacity: 0.6}}>5/5</div>
-              <p style={{fontStyle: 'italic', marginBottom: '16px'}}>
-                "Code Guardian reduced our refactoring time by 60%. What took weeks now takes hours.
-                The hotspot detection is incredibly accurate."
-              </p>
-              <div style={{fontSize: '0.875rem', opacity: 0.8}}>
-                <strong>Alex Chen</strong><br/>
-                Senior Engineer, TechCorp
+            <div className="feature-card stagger-item">
+              <div className="icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="4 17 10 11 4 5"/>
+                  <line x1="12" y1="19" x2="20" y2="19"/>
+                </svg>
               </div>
+              <h3>CLI-First, No JSON</h3>
+              <p>
+                You never touch raw MCP JSON. Just run <code>ccg quickstart</code> and
+                use natural language with Claude. The tools handle the rest.
+              </p>
             </div>
-
-            <div className="feature-card stagger-item" style={{textAlign: 'left'}}>
-              <div style={{marginBottom: '8px', fontSize: '0.75rem', opacity: 0.6}}>5/5</div>
-              <p style={{fontStyle: 'italic', marginBottom: '16px'}}>
-                "Finally, a tool that understands large codebases. The reports are detailed yet readable.
-                Our team uses it on every PR now."
-              </p>
-              <div style={{fontSize: '0.875rem', opacity: 0.8}}>
-                <strong>Sarah Martinez</strong><br/>
-                Tech Lead, DataFlow
+            <div className="feature-card stagger-item">
+              <div className="icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                  <line x1="8" y1="21" x2="16" y2="21"/>
+                  <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
               </div>
+              <h3>IDE-Native</h3>
+              <p>
+                VS Code extension shows Tech Debt Index in your status bar.
+                Claude Code MCP integration means you stay in your editor.
+              </p>
             </div>
-
-            <div className="feature-card stagger-item" style={{textAlign: 'left'}}>
-              <div style={{marginBottom: '8px', fontSize: '0.75rem', opacity: 0.6}}>5/5</div>
-              <p style={{fontStyle: 'italic', marginBottom: '16px'}}>
-                "The AI-guided refactoring is a game changer. It catches patterns we'd miss in code review.
-                Worth every penny."
-              </p>
-              <div style={{fontSize: '0.875rem', opacity: 0.8}}>
-                <strong>David Kim</strong><br/>
-                CTO, StartupHub
+            <div className="feature-card stagger-item">
+              <div className="icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
               </div>
+              <h3>Fast Enough for Daily Use</h3>
+              <p>
+                Quickstart analyzes ~100k LOC in under a second. Heavy Latent Chain
+                reasoning is there when you need it, not blocking your flow.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features */}
+      {/* Features - What It Does */}
       <section ref={featuresRef} className="scroll-fade-in">
         <div className="container">
           <h2>What It Does</h2>
-          <p className="subtitle">8 specialized tools that transform Claude Code into an intelligent refactoring assistant.</p>
+          <p className="subtitle">Four capabilities organized by what you need and when.</p>
 
-          <div className="features-grid">
+          <div className="features-grid" style={{gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))'}}>
             <div className="feature-card stagger-item">
-              <div className="icon">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="11" cy="11" r="8"/>
-                  <path d="m21 21-4.35-4.35"/>
-                </svg>
-              </div>
-              <h3>Scan & Analyze</h3>
+              <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem'}}>Dev — Free</span>
+              <h3>Scan & Measure</h3>
               <p>
-                Map your entire codebase in seconds. Calculate complexity, nesting,
-                branch scores. Find the files that need the most attention.
+                <strong>Tech Debt Index</strong> (0-100, grade A-F) gives you one number
+                for codebase health. Hotspot detection finds large files and high complexity.
               </p>
             </div>
             <div className="feature-card stagger-item">
-              <div className="icon">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-                </svg>
-              </div>
-              <h3>Plan & Refactor</h3>
+              <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem'}}>Dev — Free</span>
+              <h3>Plan & Refactor with Claude</h3>
               <p>
-                Generate step-by-step refactor plans. AI-guided changes with human
-                oversight. Guard module blocks dangerous patterns.
+                <strong>Latent Chain</strong> mode walks through Analysis, Plan, Impl, Review.
+                Guard module blocks dangerous patterns before they ship.
               </p>
             </div>
             <div className="feature-card stagger-item">
-              <div className="icon">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <line x1="18" x2="18" y1="20" y2="10"/>
-                  <line x1="12" x2="12" y1="20" y2="4"/>
-                  <line x1="6" x2="6" y1="20" y2="14"/>
-                </svg>
-              </div>
-              <h3>Report & Track</h3>
+              <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem', background: 'var(--primary)'}}>Team</span>
+              <h3>Track Progress Over Time</h3>
               <p>
-                Markdown reports with before/after metrics. Log sessions for team
-                visibility. Auto-comment hotspots on every PR.
+                Before/after metrics and <strong>TDI trend charts</strong>. Session history
+                shows how your codebase improves sprint over sprint.
+              </p>
+            </div>
+            <div className="feature-card stagger-item">
+              <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem', background: 'var(--primary)'}}>Team / Enterprise</span>
+              <h3>Integrate with Your Workflow</h3>
+              <p>
+                <strong>GitHub Action</strong> PR comments + quality gates. VS Code extension.
+                Multi-repo config for monorepos. Claude Code MCP integration.
               </p>
             </div>
           </div>
@@ -205,53 +199,53 @@ export default function Home() {
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <div className="inline-block min-w-full px-4 sm:px-0">
               <table className="hotspots-table">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th>File</th>
-                <th>Score</th>
-                <th>Issue</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>#1</td>
-                <td><code>latent.service.ts</code></td>
-                <td className="score-high">90</td>
-                <td>866 lines, complexity 78</td>
-                <td>split-module</td>
-              </tr>
-              <tr>
-                <td>#2</td>
-                <td><code>agents.service.ts</code></td>
-                <td className="score-high">90</td>
-                <td>845 lines, nesting 7</td>
-                <td>split-module</td>
-              </tr>
-              <tr>
-                <td>#3</td>
-                <td><code>commands.service.ts</code></td>
-                <td className="score-high">89</td>
-                <td>781 lines, complexity 78</td>
-                <td>split-module</td>
-              </tr>
-              <tr>
-                <td>#4</td>
-                <td><code>ccg.ts</code></td>
-                <td className="score-high">87</td>
-                <td>709 lines, nesting 6</td>
-                <td>split-module</td>
-              </tr>
-              <tr>
-                <td>#5</td>
-                <td><code>http-server.ts</code></td>
-                <td className="score-high">83</td>
-                <td>624 lines, complexity 69</td>
-                <td>split-module</td>
-              </tr>
-            </tbody>
-          </table>
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>File</th>
+                    <th>Score</th>
+                    <th>Issue</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>#1</td>
+                    <td><code>agents.service.ts</code></td>
+                    <td className="score-high">90</td>
+                    <td>542 lines, complexity 78</td>
+                    <td>split-module</td>
+                  </tr>
+                  <tr>
+                    <td>#2</td>
+                    <td><code>workflow.service.ts</code></td>
+                    <td className="score-high">89</td>
+                    <td>518 lines, nesting 7</td>
+                    <td>split-module</td>
+                  </tr>
+                  <tr>
+                    <td>#3</td>
+                    <td><code>commands.service.ts</code></td>
+                    <td className="score-high">88</td>
+                    <td>502 lines, complexity 72</td>
+                    <td>split-module</td>
+                  </tr>
+                  <tr>
+                    <td>#4</td>
+                    <td><code>ccg.ts</code></td>
+                    <td className="score-high">85</td>
+                    <td>489 lines, nesting 6</td>
+                    <td>refactor</td>
+                  </tr>
+                  <tr>
+                    <td>#5</td>
+                    <td><code>latent.service.ts</code></td>
+                    <td className="score-high">83</td>
+                    <td>467 lines, complexity 65</td>
+                    <td>refactor</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -267,23 +261,36 @@ export default function Home() {
             <div className="feature-card stagger-item">
               <h3>1. Install</h3>
               <div className="code-block">
-                npm install -g @anthropic-community/claude-code-guardian<br/>
-                ccg init
+                npm install -g codeguardian-studio
               </div>
+              <p style={{marginTop: '12px', fontSize: '0.875rem', opacity: 0.8}}>
+                One global install. Works on any Node.js project.
+              </p>
             </div>
             <div className="feature-card stagger-item">
-              <h3>2. Analyze</h3>
+              <h3>2. Run Quickstart</h3>
               <div className="code-block">
-                ccg code-optimize --report
+                ccg quickstart
               </div>
+              <p style={{marginTop: '12px', fontSize: '0.875rem', opacity: 0.8}}>
+                Scans repo, finds hotspots, writes markdown report to <code>docs/reports/</code>. Works offline.
+              </p>
             </div>
             <div className="feature-card stagger-item">
-              <h3>3. Review</h3>
-              <p>Open the generated report. See hotspots, metrics, and recommendations.</p>
+              <h3>3. Review & Refactor</h3>
+              <p>
+                Open the report in your editor. Start with worst-grade files.
+                Use Claude Code + CCG MCP tools to refactor safely with Latent Chain.
+              </p>
             </div>
             <div className="feature-card stagger-item">
-              <h3>4. Refactor</h3>
-              <p>Use Claude Code to apply safe, incremental improvements.</p>
+              <h3>4. Track Progress (Team)</h3>
+              <div className="code-block">
+                ccg dogfood-report --summary
+              </div>
+              <p style={{marginTop: '12px', fontSize: '0.875rem', opacity: 0.8}}>
+                Track TDI and hotspots over time. See trends across sessions.
+              </p>
             </div>
           </div>
 
@@ -308,11 +315,11 @@ export default function Home() {
           <div className="features-grid" style={{marginTop: '40px'}}>
             <div className="feature-card stagger-item" style={{background: 'rgba(255,255,255,0.05)'}}>
               <h3>Automatic PR Comments</h3>
-              <p>Every PR gets a formatted comment showing top hotspots, complexity metrics, and suggested fixes. No manual review needed.</p>
+              <p>Every PR gets a formatted comment showing top hotspots, TDI delta, and suggested fixes. No manual review needed.</p>
             </div>
             <div className="feature-card stagger-item" style={{background: 'rgba(255,255,255,0.05)'}}>
               <h3>Quality Gates</h3>
-              <p>Set a threshold and let CI fail on critical hotspots. Prevent complex code from being merged without review.</p>
+              <p>Set a TDI threshold and let CI fail on critical hotspots. Prevent complex code from being merged without review.</p>
             </div>
             <div className="feature-card stagger-item" style={{background: 'rgba(255,255,255,0.05)'}}>
               <h3>GitHub Actions Ready</h3>
@@ -322,8 +329,8 @@ export default function Home() {
 
           <div style={{marginTop: '40px', textAlign: 'center'}}>
             <div className="code-block" style={{display: 'inline-block', textAlign: 'left', fontSize: '0.875rem'}}>
-              # .github/workflows/codeguardian-pr.yml<br/>
-              - run: ccg code-optimize --ci --threshold 70
+              # .github/workflows/ccg-pr.yml<br/>
+              - run: npx codeguardian-studio code-optimize --ci --threshold 70
             </div>
           </div>
         </div>
@@ -341,27 +348,29 @@ export default function Home() {
               <div className="price">Free</div>
               <p>For solo devs & side projects</p>
               <ul>
-                <li>All core MCP tools</li>
-                <li>Code Optimizer (8 tools)</li>
-                <li>CLI & basic reports</li>
+                <li>Core CLI & hotspot detection</li>
+                <li>Tech Debt Index per run</li>
+                <li>Basic markdown reports</li>
                 <li>GitHub Actions template</li>
-                <li>Community support</li>
+                <li>Fully local, no license</li>
               </ul>
               <a href="#get-started" className="btn btn-secondary">Get Started</a>
             </div>
 
             <div className="pricing-card featured scroll-scale">
               <h3>Team</h3>
-              <div className="price">$39<span style={{fontSize: '1rem', color: '#888'}}>/mo</span></div>
+              <div className="price">$19<span style={{fontSize: '1rem', color: '#888'}}>/mo</span></div>
               <p>For product teams & agencies</p>
               <ul>
                 <li>Everything in Dev</li>
-                <li>Report dashboard</li>
-                <li>Multi-repo (up to 20)</li>
+                <li>Advanced reports (before/after)</li>
+                <li>TDI trends & session history</li>
+                <li>Multi-repo config</li>
                 <li>PR hotspot comments</li>
+                <li>VS Code extension</li>
                 <li>Email support</li>
               </ul>
-              <a href="#contact" className="btn btn-primary">Start Trial</a>
+              <a href="mailto:hello@codeguardian.studio?subject=Team Tier Interest" className="btn btn-primary">Start Trial</a>
             </div>
 
             <div className="pricing-card scroll-scale">
@@ -371,11 +380,58 @@ export default function Home() {
               <ul>
                 <li>Everything in Team</li>
                 <li>Unlimited repos</li>
-                <li>Self-hosted option</li>
                 <li>SSO / SAML</li>
-                <li>Dedicated support + SLA</li>
+                <li>Audit logs</li>
+                <li>Dedicated cloud backend</li>
+                <li>SLA + dedicated support</li>
               </ul>
-              <a href="#contact" className="btn btn-secondary">Contact Sales</a>
+              <a href="mailto:hello@codeguardian.studio?subject=Enterprise Inquiry" className="btn btn-secondary">Contact Sales</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ - Why not SonarQube */}
+      <section ref={faqRef} className="scroll-fade-in" style={{background: 'rgba(255,255,255,0.02)'}}>
+        <div className="container">
+          <h2>FAQ</h2>
+
+          <div className="features-grid" style={{gridTemplateColumns: '1fr', maxWidth: '800px', margin: '0 auto'}}>
+            <div className="feature-card" style={{textAlign: 'left'}}>
+              <h3>Why not just use SonarQube + Claude?</h3>
+              <p style={{lineHeight: 1.8}}>
+                You could! But Code Guardian Studio gives you:
+              </p>
+              <ul style={{marginTop: '12px', lineHeight: 2}}>
+                <li><strong>Tech Debt Index</strong> — one number for codebase health (0-100, grade A-F)</li>
+                <li><strong>Trend tracking</strong> — see how TDI changes sprint over sprint</li>
+                <li><strong>Multi-session reports</strong> — before/after comparisons out of the box</li>
+                <li><strong>Claude-native workflow</strong> — Latent Chain mode, MCP integration, no glue code</li>
+              </ul>
+              <p style={{marginTop: '16px', opacity: 0.8}}>
+                SonarQube is great for static analysis. CCG adds the "what changed" and "what to do next"
+                layers that turn analysis into action.
+              </p>
+            </div>
+
+            <div className="feature-card" style={{textAlign: 'left'}}>
+              <h3>Does the free tier have limits?</h3>
+              <p style={{lineHeight: 1.8}}>
+                No artificial limits. Dev tier includes full CLI, hotspot detection, Tech Debt Index,
+                and basic reports. It runs 100% offline with no license key required.
+              </p>
+              <p style={{marginTop: '12px', opacity: 0.8}}>
+                Team tier adds trend tracking, advanced reports, PR comments, and VS Code integration
+                for teams who want visibility into progress over time.
+              </p>
+            </div>
+
+            <div className="feature-card" style={{textAlign: 'left'}}>
+              <h3>What languages are supported?</h3>
+              <p style={{lineHeight: 1.8}}>
+                JavaScript/TypeScript have the best support. Python, Java, Go, Rust, and C/C++ work
+                with basic metrics. Any language with recognizable syntax gets file-level analysis.
+              </p>
             </div>
           </div>
         </div>
@@ -386,13 +442,19 @@ export default function Home() {
         <div className="container" style={{textAlign: 'center'}}>
           <h2>Ready to clean up your codebase?</h2>
           <div className="code-block" style={{display: 'inline-block', textAlign: 'left'}}>
-            npm install -g @anthropic-community/claude-code-guardian<br/>
-            ccg init<br/>
-            ccg code-optimize --report
+            npm install -g codeguardian-studio<br/>
+            ccg quickstart
           </div>
+          <p style={{marginTop: '16px', opacity: 0.8, fontSize: '0.9rem'}}>
+            That's it. Report appears in <code>docs/reports/</code>.
+          </p>
           <div style={{marginTop: '32px'}}>
-            <a href="https://github.com/phuongrealmax/claude-code-guardian" className="btn btn-primary">
+            <a href="https://github.com/phuongrealmax/claude-code-guardian" className="btn btn-primary" target="_blank" rel="noopener noreferrer">
               View on GitHub
+            </a>
+            {' '}
+            <a href="/case-study" className="btn btn-secondary">
+              See Case Study
             </a>
           </div>
         </div>
@@ -400,7 +462,7 @@ export default function Home() {
 
       {/* Floating CTA */}
       <a href="#get-started" className="floating-cta">
-        Get Started →
+        Get Started
       </a>
 
       <Footer />
