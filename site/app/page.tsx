@@ -11,6 +11,7 @@ export default function Home() {
   const featuresRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
   const hotspotsRef = useScrollAnimation<HTMLElement>({ threshold: 0.3 })
   const howItWorksRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
+  const ossRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
   const pricingRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
   const faqRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
 
@@ -307,7 +308,7 @@ export default function Home() {
       </section>
 
       {/* For Open Source Maintainers */}
-      <section className="scroll-fade-in" style={{background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', paddingTop: '60px', paddingBottom: '60px'}}>
+      <section ref={ossRef} className="scroll-fade-in" style={{background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', paddingTop: '60px', paddingBottom: '60px'}}>
         <div className="container">
           <h2>For Open Source Maintainers</h2>
           <p className="subtitle">Automate code quality checks on every pull request.</p>
