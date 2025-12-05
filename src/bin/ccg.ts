@@ -678,17 +678,28 @@ const codeOptimizeCmd = program
 
       // Output results
       if (options.json) {
+        // Full JSON output for CI/automation
         console.log(JSON.stringify({
           scan: {
             totalFiles: result.scan.totalFiles,
             totalLines: result.scan.totalLinesApprox,
+            rootPath: result.scan.rootPath,
           },
           metrics: {
             filesAnalyzed: result.metrics.files.length,
-            avgComplexity: result.metrics.aggregate.avgComplexityScore,
+            aggregate: result.metrics.aggregate,
           },
-          hotspots: result.hotspots.hotspots,
-          summary: result.hotspots.summary,
+          hotspots: {
+            hotspots: result.hotspots.hotspots,
+            summary: result.hotspots.summary,
+          },
+          ci: {
+            threshold: parseInt(options.threshold || '50', 10),
+            criticalCount: result.hotspots.hotspots.filter((h: any) => h.score >= 80).length,
+            failedCount: result.hotspots.hotspots.filter((h: any) => h.score >= parseInt(options.threshold || '50', 10)).length,
+            passed: result.hotspots.hotspots.filter((h: any) => h.score >= parseInt(options.threshold || '50', 10)).length === 0,
+          },
+          timestamp: new Date().toISOString(),
         }, null, 2));
       } else {
         console.log();

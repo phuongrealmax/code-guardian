@@ -299,6 +299,36 @@ export default function Home() {
         </div>
       </section>
 
+      {/* For Open Source Maintainers */}
+      <section className="scroll-fade-in" style={{background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'}}>
+        <div className="container">
+          <h2>For Open Source Maintainers</h2>
+          <p className="subtitle">Automate code quality checks on every pull request.</p>
+
+          <div className="features-grid" style={{marginTop: '40px'}}>
+            <div className="feature-card stagger-item" style={{background: 'rgba(255,255,255,0.05)'}}>
+              <h3>Automatic PR Comments</h3>
+              <p>Every PR gets a formatted comment showing top hotspots, complexity metrics, and suggested fixes. No manual review needed.</p>
+            </div>
+            <div className="feature-card stagger-item" style={{background: 'rgba(255,255,255,0.05)'}}>
+              <h3>Quality Gates</h3>
+              <p>Set a threshold and let CI fail on critical hotspots. Prevent complex code from being merged without review.</p>
+            </div>
+            <div className="feature-card stagger-item" style={{background: 'rgba(255,255,255,0.05)'}}>
+              <h3>GitHub Actions Ready</h3>
+              <p>Copy-paste our workflow file and start enforcing quality in minutes. Works with any Node.js project.</p>
+            </div>
+          </div>
+
+          <div style={{marginTop: '40px', textAlign: 'center'}}>
+            <div className="code-block" style={{display: 'inline-block', textAlign: 'left', fontSize: '0.875rem'}}>
+              # .github/workflows/codeguardian-pr.yml<br/>
+              - run: ccg code-optimize --ci --threshold 70
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section ref={pricingRef} id="pricing" className="scroll-fade-in">
         <div className="container">

@@ -308,6 +308,10 @@ ccg code-optimize --report
 
 ### CI/CD Integration
 
+CCG integrates with CI/CD pipelines to enforce code quality on every pull request.
+
+#### Quick Setup (Basic)
+
 Add to your CI pipeline:
 
 ```yaml
@@ -315,6 +319,104 @@ Add to your CI pipeline:
 - name: Code Quality Check
   run: ccg code-optimize --ci --threshold 70
 ```
+
+#### Full GitHub Action (with PR Comments)
+
+For automatic PR comments and detailed analysis, use the full workflow:
+
+```yaml
+# .github/workflows/codeguardian-pr.yml
+name: Code Guardian Analysis
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm install -g codeguardian-studio
+
+      - name: Initialize CCG
+        run: ccg init --yes || true
+
+      - name: Run Analysis
+        id: analysis
+        run: |
+          ccg code-optimize --json --ci --threshold 70 > .ccg/ci-report.json
+          ccg code-optimize --report --output .ccg/ci-report.md
+
+      - name: Post PR Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('.ccg/ci-report.json', 'utf8'));
+            const hotspots = report.hotspots?.hotspots || [];
+
+            let body = `## 🔍 Code Guardian Analysis\n\n`;
+            body += `> ${hotspots.length} hotspot(s) found\n\n`;
+
+            if (hotspots.length > 0) {
+              body += `| File | Score | Issue |\n|------|-------|-------|\n`;
+              hotspots.slice(0, 5).forEach(h => {
+                body += `| \`${h.path}\` | ${h.score.toFixed(0)} | ${h.reasons[0]} |\n`;
+              });
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
+      - name: Quality Gate
+        run: |
+          CRITICAL=$(cat .ccg/ci-report.json | jq '[.hotspots.hotspots[] | select(.score >= 80)] | length')
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "❌ Critical hotspots detected"
+            exit 1
+          fi
+```
+
+#### CI Mode Options
+
+```bash
+# Fail if any hotspot exceeds threshold
+ccg code-optimize --ci --threshold 70
+
+# Stricter threshold for critical code
+ccg code-optimize --ci --threshold 50
+
+# JSON output for parsing in scripts
+ccg code-optimize --json --ci --threshold 70 > report.json
+```
+
+**Exit codes (CI mode):**
+- `0` - All hotspots below threshold
+- `1` - One or more hotspots exceed threshold
+
+#### Team Tier: Automatic PR Comments
+
+With a Team license, PR comments automatically include:
+- Before/after comparison (if previous analysis exists)
+- Tech debt trend indicators
+- ROI estimates
 
 ### Team Workflow
 

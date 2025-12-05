@@ -1,0 +1,238 @@
+# Code Guardian PR Analysis
+#
+# This workflow runs code quality checks on pull requests and posts
+# analysis results as PR comments.
+#
+# Features:
+# - Analyzes code complexity and hotspots
+# - Posts formatted comment with top issues
+# - Fails CI when critical hotspots detected
+# - Configurable quality thresholds
+#
+# Requirements:
+# - Node.js 18+
+# - codeguardian-studio installed globally or as dev dependency
+
+name: Code Guardian Analysis
+
+on:
+  pull_request:
+    branches: [main, master, develop]
+    types: [opened, synchronize, reopened]
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      threshold:
+        description: 'Hotspot score threshold for failure'
+        required: false
+        default: '70'
+
+# Permissions needed for PR comments
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  analyze:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for accurate analysis
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Code Guardian
+        run: npm install -g codeguardian-studio
+
+      - name: Initialize CCG (if needed)
+        run: |
+          if [ ! -d ".ccg" ]; then
+            ccg init --yes
+          fi
+
+      - name: Run Code Analysis
+        id: analysis
+        env:
+          CCG_THRESHOLD: ${{ github.event.inputs.threshold || '70' }}
+          CCG_CI_MODE: 'true'
+        run: |
+          # Run analysis and capture output
+          set +e  # Don't exit on error yet
+
+          ccg code-optimize --json --ci --threshold $CCG_THRESHOLD > .ccg/ci-report.json 2>&1
+          ANALYSIS_EXIT_CODE=$?
+
+          # Also generate markdown report
+          ccg code-optimize --report --output .ccg/ci-report.md
+
+          # Parse results for GitHub output
+          if [ -f ".ccg/ci-report.json" ]; then
+            HOTSPOT_COUNT=$(cat .ccg/ci-report.json | jq -r '.hotspots.summary.hotspotsFound // 0')
+            AVG_COMPLEXITY=$(cat .ccg/ci-report.json | jq -r '.metrics.aggregate.avgComplexityScore // 0')
+            CRITICAL_COUNT=$(cat .ccg/ci-report.json | jq -r '[.hotspots.hotspots[] | select(.score >= 80)] | length // 0')
+          else
+            HOTSPOT_COUNT=0
+            AVG_COMPLEXITY=0
+            CRITICAL_COUNT=0
+          fi
+
+          echo "hotspot_count=$HOTSPOT_COUNT" >> $GITHUB_OUTPUT
+          echo "avg_complexity=$AVG_COMPLEXITY" >> $GITHUB_OUTPUT
+          echo "critical_count=$CRITICAL_COUNT" >> $GITHUB_OUTPUT
+          echo "exit_code=$ANALYSIS_EXIT_CODE" >> $GITHUB_OUTPUT
+          echo "threshold=$CCG_THRESHOLD" >> $GITHUB_OUTPUT
+
+          # Don't fail here - we'll handle it after commenting
+          exit 0
+
+      - name: Generate PR Comment
+        id: comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read analysis results
+            let report = {};
+            try {
+              const reportContent = fs.readFileSync('.ccg/ci-report.json', 'utf8');
+              report = JSON.parse(reportContent);
+            } catch (e) {
+              console.log('Could not read report file:', e.message);
+            }
+
+            const hotspots = report.hotspots?.hotspots || [];
+            const metrics = report.metrics?.aggregate || {};
+            const threshold = '${{ steps.analysis.outputs.threshold }}';
+            const criticalCount = parseInt('${{ steps.analysis.outputs.critical_count }}') || 0;
+
+            // Build comment body
+            let body = `## 🔍 Code Guardian Analysis\n\n`;
+
+            // Summary badges
+            const hotspotCount = hotspots.length;
+            const avgComplexity = (metrics.avgComplexityScore || 0).toFixed(1);
+
+            if (criticalCount > 0) {
+              body += `> ⚠️ **${criticalCount} critical hotspot(s) detected** (score >= 80)\n\n`;
+            } else if (hotspotCount > 0) {
+              body += `> ℹ️ **${hotspotCount} hotspot(s)** found | Avg complexity: **${avgComplexity}**\n\n`;
+            } else {
+              body += `> ✅ **No hotspots detected** | Avg complexity: **${avgComplexity}**\n\n`;
+            }
+
+            // Hotspots table (top 5)
+            if (hotspots.length > 0) {
+              body += `### Top Hotspots\n\n`;
+              body += `| Rank | File | Score | Issue | Suggestion |\n`;
+              body += `|------|------|-------|-------|------------|\n`;
+
+              const topHotspots = hotspots.slice(0, 5);
+              topHotspots.forEach((h, i) => {
+                const file = h.path.length > 40 ? '...' + h.path.slice(-37) : h.path;
+                const issue = (h.reasons?.[0] || 'Complex code').substring(0, 30);
+                const suggestion = h.suggestedGoal || 'refactor';
+                const scoreEmoji = h.score >= 80 ? '🔴' : h.score >= 50 ? '🟡' : '🟢';
+                body += `| #${i + 1} | \`${file}\` | ${scoreEmoji} ${h.score.toFixed(0)} | ${issue} | ${suggestion} |\n`;
+              });
+
+              if (hotspots.length > 5) {
+                body += `\n*...and ${hotspots.length - 5} more hotspots*\n`;
+              }
+              body += '\n';
+            }
+
+            // Metrics summary
+            body += `### Metrics Summary\n\n`;
+            body += `| Metric | Value |\n`;
+            body += `|--------|-------|\n`;
+            body += `| Files Analyzed | ${metrics.totalFiles || 0} |\n`;
+            body += `| Total Lines | ${(metrics.totalLines || 0).toLocaleString()} |\n`;
+            body += `| Avg Complexity | ${avgComplexity} |\n`;
+            body += `| TODOs | ${metrics.totalTodos || 0} |\n`;
+            body += `| FIXMEs | ${metrics.totalFixmes || 0} |\n\n`;
+
+            // Quality gate status
+            body += `### Quality Gate\n\n`;
+            const exitCode = parseInt('${{ steps.analysis.outputs.exit_code }}') || 0;
+            if (exitCode === 0 && criticalCount === 0) {
+              body += `✅ **Passed** - No hotspots above threshold (${threshold})\n\n`;
+            } else {
+              body += `❌ **Failed** - ${criticalCount} critical hotspot(s) or threshold (${threshold}) exceeded\n\n`;
+            }
+
+            // Footer
+            body += `---\n`;
+            body += `*Generated by [Code Guardian Studio](https://codeguardian.studio) v3.1*\n`;
+            body += `*Threshold: ${threshold} | Run: \`ccg code-optimize --report\` locally for full details*`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existingComment = comments.find(c =>
+              c.user.type === 'Bot' &&
+              c.body.includes('Code Guardian Analysis')
+            );
+
+            // Update or create comment
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body: body
+              });
+              console.log('Updated existing comment');
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+              console.log('Created new comment');
+            }
+
+            return { success: true };
+
+      - name: Upload Analysis Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeguardian-report
+          path: |
+            .ccg/ci-report.json
+            .ccg/ci-report.md
+          retention-days: 30
+
+      - name: Check Quality Gate
+        env:
+          EXIT_CODE: ${{ steps.analysis.outputs.exit_code }}
+          CRITICAL_COUNT: ${{ steps.analysis.outputs.critical_count }}
+        run: |
+          if [ "$CRITICAL_COUNT" -gt 0 ]; then
+            echo "❌ Quality gate failed: $CRITICAL_COUNT critical hotspot(s) detected (score >= 80)"
+            exit 1
+          fi
+
+          if [ "$EXIT_CODE" -ne 0 ]; then
+            echo "❌ Quality gate failed: Hotspots exceeded threshold"
+            exit 1
+          fi
+
+          echo "✅ Quality gate passed"
