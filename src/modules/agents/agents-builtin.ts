@@ -115,4 +115,44 @@ export const BUILTIN_AGENTS: RegisterAgentParams[] = [
       { id: 'node-5', pattern: 'bullmq|rabbitmq', matchType: 'regex', priority: 10 },
     ],
   },
+
+  // Security Agent - STRIDE Threat Modeling
+  {
+    id: 'security-agent',
+    name: 'Security Agent',
+    role: 'Senior Application Security Engineer',
+    specializations: [
+      'STRIDE threat modeling', 'OWASP Top 10', 'Secure coding',
+      'Authentication', 'Authorization', 'Cryptography',
+      'Input validation', 'Security audit', 'Penetration testing',
+    ],
+    responsibilities: [
+      'STRIDE threat analysis: Spoofing, Tampering, Repudiation, Information Disclosure, DoS, Elevation of Privilege',
+      'OWASP Top 10 vulnerability detection and remediation',
+      'Authentication/Authorization security (JWT, OAuth, RBAC)',
+      'Input validation and sanitization patterns',
+      'Secure data handling and cryptography best practices',
+      'Security code review and vulnerability assessment',
+      'CI/CD security integration (SAST, DAST, dependency scanning)',
+    ],
+    delegationRules: [
+      { id: 'security-1', pattern: 'security', matchType: 'keyword', priority: 10 },
+      { id: 'security-2', pattern: 'vulnerability', matchType: 'keyword', priority: 10 },
+      { id: 'security-3', pattern: 'auth', matchType: 'keyword', priority: 8 },
+      { id: 'security-4', pattern: 'injection', matchType: 'keyword', priority: 10 },
+      { id: 'security-5', pattern: 'xss|csrf|sqli', matchType: 'regex', priority: 10 },
+      { id: 'security-6', pattern: 'encrypt|decrypt|hash', matchType: 'regex', priority: 9 },
+      { id: 'security-7', pattern: 'stride|owasp', matchType: 'regex', priority: 10 },
+      { id: 'security-8', pattern: 'threat', matchType: 'keyword', priority: 9 },
+      { id: 'security-9', pattern: 'penetration|pentest', matchType: 'regex', priority: 10 },
+    ],
+    principles: [
+      'Always assume input is malicious - validate everything',
+      'Apply defense in depth - multiple security layers',
+      'Follow principle of least privilege',
+      'Never store secrets in code or logs',
+      'Use secure defaults and fail securely',
+      'Keep security controls centralized and reusable',
+    ],
+  },
 ];

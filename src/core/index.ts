@@ -30,3 +30,22 @@ export {
 
 // Utils (includes truncate from string-utils)
 export * from './utils/index.js';
+
+// Context Profiles - Environment-aware configuration profiles
+export {
+  ProfileManager,
+  ProfileType,
+  ContextProfile,
+  AutoActivateConfig,
+  ProfileOverrides,
+  ProfilesConfig,
+  BUILTIN_PROFILES,
+  getProfileManager,
+  createProfileManager,
+  resetProfileManager,
+} from './context-profiles.js';
+
+export {
+  PROFILE_TOOL_DEFINITIONS,
+  handleProfileTool,
+} from './context-profiles.tools.js';

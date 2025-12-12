@@ -338,3 +338,39 @@ export class AgentsModule {
 export { AgentsService } from './agents.service.js';
 export * from './agents.types.js';
 export * from './agents.tools.js';
+
+// Security STRIDE exports
+export {
+  STRIDEService,
+  STRIDECategory,
+  ThreatDefinition,
+  ThreatFinding,
+  ThreatAnalysisResult,
+  SecurityChecklistItem,
+  CodePattern,
+  STRIDE_THREATS,
+  CODE_PATTERNS,
+  SECURITY_CHECKLIST,
+  createSTRIDEService,
+} from './security-stride.js';
+
+export {
+  STRIDE_TOOL_DEFINITIONS,
+  handleSTRIDETool,
+} from './security-stride.tools.js';
+
+// Onboarding Agent exports
+export {
+  OnboardingService,
+  MigrationResult,
+  ValidationResult,
+  ValidationIssue,
+  SetupStep,
+  OnboardingStatus,
+  createOnboardingService,
+} from './onboarding-agent.js';
+
+export {
+  ONBOARDING_TOOL_DEFINITIONS,
+  handleOnboardingTool,
+} from './onboarding-agent.tools.js';

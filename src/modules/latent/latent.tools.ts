@@ -26,435 +26,13 @@ import {
   GetContextParams,
   TransitionPhaseParams,
 } from './latent.types.js';
-
-/**
- * MCP Tool Definition
- */
-interface MCPTool {
-  name: string;
-  description: string;
-  inputSchema: {
-    type: 'object';
-    properties: Record<string, unknown>;
-    required?: string[];
-  };
-}
+import { MCPTool, LATENT_TOOL_DEFINITIONS } from './latent.tool-defs.js';
 
 /**
  * Create MCP tools for Latent Module
  */
-export function createLatentTools(service: LatentService): MCPTool[] {
-  return [
-    // ═══════════════════════════════════════════════════════════════
-    //                      CONTEXT MANAGEMENT
-    // ═══════════════════════════════════════════════════════════════
-    {
-      name: 'latent_context_create',
-      description: `Create a new AgentLatentContext for a task.
-This initializes the hidden-state structure for Latent Chain Mode.
-
-Use this at the start of a new task to begin latent reasoning.
-
-Example:
-{
-  "taskId": "fix-auth-bug",
-  "phase": "analysis",
-  "constraints": ["No breaking changes", "Must pass existing tests"],
-  "files": ["src/auth/login.ts"]
-}`,
-      inputSchema: {
-        type: 'object',
-        properties: {
-          taskId: {
-            type: 'string',
-            description: 'Unique task identifier',
-          },
-          phase: {
-            type: 'string',
-            enum: ['analysis', 'plan', 'impl', 'review'],
-            description: 'Initial phase (default: analysis)',
-          },
-          constraints: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Constraints/rules to follow',
-          },
-          files: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Initial files involved',
-          },
-          agentId: {
-            type: 'string',
-            description: 'Creating agent ID',
-          },
-        },
-        required: ['taskId'],
-      },
-    },
-
-    {
-      name: 'latent_context_get',
-      description: `Get the current AgentLatentContext for a task.
-Returns the full KV-cache like structure for hidden-state reasoning.
-
-Use this to retrieve context before making updates.
-
-Example:
-{
-  "taskId": "fix-auth-bug",
-  "fields": ["phase", "codeMap", "decisions"]
-}`,
-      inputSchema: {
-        type: 'object',
-        properties: {
-          taskId: {
-            type: 'string',
-            description: 'Task identifier',
-          },
-          includeHistory: {
-            type: 'boolean',
-            description: 'Include change history',
-          },
-          fields: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Specific fields to return (empty = all)',
-          },
-        },
-        required: ['taskId'],
-      },
-    },
-
-    {
-      name: 'latent_context_update',
-      description: `Update latent context with a delta (changes only, not full context).
-This is the KEY feature of Latent Chain Mode - send only what changed.
-
-The delta will be MERGED into the existing context, not replace it.
-
-Example:
-{
-  "taskId": "fix-auth-bug",
-  "delta": {
-    "codeMap": { "hotSpots": ["src/auth/login.ts:45"] },
-    "decisions": [{ "id": "D001", "summary": "Use JWT", "rationale": "Industry standard" }],
-    "risks": ["Token expiry handling"]
-  }
-}`,
-      inputSchema: {
-        type: 'object',
-        properties: {
-          taskId: {
-            type: 'string',
-            description: 'Task identifier',
-          },
-          delta: {
-            type: 'object',
-            description: 'Context delta to merge',
-            properties: {
-              phase: { type: 'string' },
-              codeMap: {
-                type: 'object',
-                properties: {
-                  files: { type: 'array', items: { type: 'string' } },
-                  hotSpots: { type: 'array', items: { type: 'string' } },
-                  components: { type: 'array', items: { type: 'string' } },
-                },
-              },
-              constraints: { type: 'array', items: { type: 'string' } },
-              risks: { type: 'array', items: { type: 'string' } },
-              decisions: {
-                type: 'array',
-                items: {
-                  type: 'object',
-                  properties: {
-                    id: { type: 'string' },
-                    summary: { type: 'string' },
-                    rationale: { type: 'string' },
-                  },
-                },
-              },
-              artifacts: { type: 'object' },
-              metadata: { type: 'object' },
-              remove: {
-                type: 'object',
-                description: 'Items to remove by ID or value',
-              },
-            },
-          },
-          agentId: {
-            type: 'string',
-            description: 'Agent making update',
-          },
-          force: {
-            type: 'boolean',
-            description: 'Force update even if auto-merge disabled',
-          },
-        },
-        required: ['taskId', 'delta'],
-      },
-    },
-
-    // ═══════════════════════════════════════════════════════════════
-    //                      PHASE MANAGEMENT
-    // ═══════════════════════════════════════════════════════════════
-    {
-      name: 'latent_phase_transition',
-      description: `Transition to a new phase in the Latent Chain workflow.
-
-Valid transitions:
-- analysis -> plan, impl
-- plan -> impl, review
-- impl -> review, plan (go back for issues)
-- review -> impl, analysis (go back for fixes)
-
-Example:
-{
-  "taskId": "fix-auth-bug",
-  "toPhase": "plan",
-  "summary": "Identified root cause in token validation"
-}`,
-      inputSchema: {
-        type: 'object',
-        properties: {
-          taskId: {
-            type: 'string',
-            description: 'Task identifier',
-          },
-          toPhase: {
-            type: 'string',
-            enum: ['analysis', 'plan', 'impl', 'review'],
-            description: 'Target phase',
-          },
-          summary: {
-            type: 'string',
-            description: 'Summary of phase completion',
-          },
-          agentId: {
-            type: 'string',
-            description: 'Agent making transition',
-          },
-        },
-        required: ['taskId', 'toPhase'],
-      },
-    },
-
-    // ═══════════════════════════════════════════════════════════════
-    //                      PATCH APPLICATION
-    // ═══════════════════════════════════════════════════════════════
-    {
-      name: 'latent_apply_patch',
-      description: `Apply a patch to a file during impl phase.
-
-Use unified diff format for patches.
-
-Example:
-{
-  "taskId": "fix-auth-bug",
-  "target": "src/auth/login.ts",
-  "patch": "--- a/src/auth/login.ts\\n+++ b/src/auth/login.ts\\n@@ -45,3 +45,5 @@\\n-const token = generateToken();\\n+const token = generateToken();\\n+token.expiresIn = '1h';",
-  "dryRun": false
-}`,
-      inputSchema: {
-        type: 'object',
-        properties: {
-          taskId: {
-            type: 'string',
-            description: 'Task identifier',
-          },
-          target: {
-            type: 'string',
-            description: 'Target file path (relative to project root)',
-          },
-          patch: {
-            type: 'string',
-            description: 'Patch content in unified diff format',
-          },
-          dryRun: {
-            type: 'boolean',
-            description: 'Validate only, do not apply',
-          },
-        },
-        required: ['taskId', 'target', 'patch'],
-      },
-    },
-
-    // ═══════════════════════════════════════════════════════════════
-    //                      VALIDATION
-    // ═══════════════════════════════════════════════════════════════
-    {
-      name: 'latent_validate_response',
-      description: `Validate a LatentResponse format before outputting.
-
-Checks:
-- Summary length (max 200 chars)
-- Actions have targets
-- Context delta format
-
-Example:
-{
-  "response": {
-    "summary": "Fixed token expiry bug",
-    "contextDelta": { "decisions": [...] },
-    "actions": [{ "type": "edit_file", "target": "src/auth.ts", "description": "Fix token" }]
-  }
-}`,
-      inputSchema: {
-        type: 'object',
-        properties: {
-          response: {
-            type: 'object',
-            description: 'LatentResponse to validate',
-            properties: {
-              summary: { type: 'string' },
-              contextDelta: { type: 'object' },
-              actions: { type: 'array' },
-              phaseCompleted: { type: 'string' },
-              nextPhase: { type: 'string' },
-              taskComplete: { type: 'boolean' },
-            },
-            required: ['summary', 'contextDelta', 'actions'],
-          },
-        },
-        required: ['response'],
-      },
-    },
-
-    // ═══════════════════════════════════════════════════════════════
-    //                      TASK COMPLETION
-    // ═══════════════════════════════════════════════════════════════
-    {
-      name: 'latent_complete_task',
-      description: `Mark a task as complete.
-
-Call this after review phase is done and all work is verified.
-
-Example:
-{
-  "taskId": "fix-auth-bug",
-  "summary": "Fixed token expiry bug by adding explicit timeout"
-}`,
-      inputSchema: {
-        type: 'object',
-        properties: {
-          taskId: {
-            type: 'string',
-            description: 'Task identifier',
-          },
-          summary: {
-            type: 'string',
-            description: 'Final task summary (1-2 sentences)',
-          },
-        },
-        required: ['taskId', 'summary'],
-      },
-    },
-
-    // ═══════════════════════════════════════════════════════════════
-    //                      LISTING & STATUS
-    // ═══════════════════════════════════════════════════════════════
-    {
-      name: 'latent_list_contexts',
-      description: 'List all active latent contexts.',
-      inputSchema: {
-        type: 'object',
-        properties: {},
-      },
-    },
-
-    {
-      name: 'latent_delete_context',
-      description: 'Delete a latent context.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          taskId: {
-            type: 'string',
-            description: 'Task identifier to delete',
-          },
-        },
-        required: ['taskId'],
-      },
-    },
-
-    {
-      name: 'latent_status',
-      description: 'Get Latent Module status including statistics.',
-      inputSchema: {
-        type: 'object',
-        properties: {},
-      },
-    },
-
-    // ═══════════════════════════════════════════════════════════════
-    //                      STEP LOGGING (OBSERVER)
-    // ═══════════════════════════════════════════════════════════════
-    {
-      name: 'latent_step_log',
-      description: `Log a reasoning step for audit and tracking purposes.
-
-Use this BEFORE or AFTER major reasoning steps such as:
-- Starting a group of multi-file changes
-- Making architectural decisions
-- Transitioning between phases
-- Completing a milestone
-
-This allows CCG to track Claude's reasoning process even when no code changes are made.
-
-Example:
-{
-  "taskId": "fix-auth-bug",
-  "phase": "analysis",
-  "description": "Identified root cause: token validation skips expiry check",
-  "affectedFiles": ["src/auth/token.ts", "src/auth/validate.ts"],
-  "decisions": ["D001: Add expiry check before token use"],
-  "nextAction": "Transition to plan phase to design fix"
-}`,
-      inputSchema: {
-        type: 'object',
-        properties: {
-          taskId: {
-            type: 'string',
-            description: 'Task identifier (creates context if not exists)',
-          },
-          phase: {
-            type: 'string',
-            enum: ['analysis', 'plan', 'impl', 'review'],
-            description: 'Current phase of reasoning',
-          },
-          description: {
-            type: 'string',
-            description: 'Brief description of the reasoning step (max 500 chars)',
-          },
-          affectedFiles: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Files affected or being considered',
-          },
-          decisions: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Decisions made in this step (format: "D001: summary")',
-          },
-          risks: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Risks identified in this step',
-          },
-          nextAction: {
-            type: 'string',
-            description: 'What Claude will do next',
-          },
-          metadata: {
-            type: 'object',
-            description: 'Additional metadata for the step',
-          },
-        },
-        required: ['taskId', 'phase', 'description'],
-      },
-    },
-  ];
+export function createLatentTools(_service: LatentService): MCPTool[] {
+  return LATENT_TOOL_DEFINITIONS;
 }
 
 /**
@@ -695,6 +273,132 @@ export async function handleLatentTool(
         filesTracked: affectedFiles.length,
         decisionsLogged: parsedDecisions.length,
         risksIdentified: risks.length,
+      };
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //                      DIFF-BASED EDITING TOOLS
+    // ═══════════════════════════════════════════════════════════════
+
+    case 'latent_diff_apply': {
+      const target = args.target as string;
+      const diff = args.diff as string;
+      const dryRun = args.dryRun as boolean | undefined;
+      const forceApply = args.forceApply as boolean | undefined;
+
+      const result = await service.applyDiff(target, diff, { dryRun, forceApply });
+
+      return {
+        success: result.success,
+        target: result.target,
+        linesAdded: result.linesAdded,
+        linesRemoved: result.linesRemoved,
+        usedFuzzyMatch: result.usedFuzzyMatch,
+        requiresConfirm: result.requiresConfirm,
+        conflicts: result.conflicts.map(c => ({
+          type: c.type,
+          hunkIndex: c.hunkIndex,
+          similarity: Math.round(c.similarity * 100),
+          canFuzzyResolve: c.canFuzzyResolve,
+          suggestion: c.suggestion,
+        })),
+        preview: result.preview,
+        backupPath: result.backupPath,
+        error: result.error,
+        message: result.success
+          ? `Applied diff to ${target}: +${result.linesAdded}/-${result.linesRemoved}${result.usedFuzzyMatch ? ' (fuzzy match)' : ''}`
+          : result.requiresConfirm
+            ? `Conflicts detected - use latent_diff_confirm to proceed`
+            : `Failed: ${result.error}`,
+      };
+    }
+
+    case 'latent_diff_confirm': {
+      const target = args.target as string;
+      const action = args.action as 'confirm' | 'reject';
+
+      if (action === 'reject') {
+        const rejected = service.rejectDiff(target);
+        return {
+          success: rejected,
+          target,
+          action: 'rejected',
+          message: rejected
+            ? `Rejected pending edit for ${target}`
+            : `No pending edit found for ${target}`,
+        };
+      }
+
+      const result = await service.confirmDiff(target);
+      return {
+        success: result.success,
+        target: result.target,
+        linesAdded: result.linesAdded,
+        linesRemoved: result.linesRemoved,
+        error: result.error,
+        message: result.success
+          ? `Confirmed and applied edit to ${target}`
+          : `Failed to apply: ${result.error}`,
+      };
+    }
+
+    case 'latent_diff_rollback': {
+      const target = args.target as string;
+      const success = await service.rollbackDiff(target);
+      return {
+        success,
+        target,
+        message: success
+          ? `Rolled back ${target} to backup`
+          : `No backup found for ${target}`,
+      };
+    }
+
+    case 'latent_diff_config': {
+      const config: Partial<import('./diff-editor.js').DiffEditorConfig> = {};
+      if (args.confirmPolicy !== undefined) {
+        config.confirmPolicy = args.confirmPolicy as 'auto' | 'prompt' | 'never';
+      }
+      if (args.fuzzyThreshold !== undefined) {
+        config.fuzzyThreshold = args.fuzzyThreshold as number;
+      }
+      if (args.createBackup !== undefined) {
+        config.createBackup = args.createBackup as boolean;
+      }
+      if (args.autoRollback !== undefined) {
+        config.autoRollback = args.autoRollback as boolean;
+      }
+
+      if (Object.keys(config).length > 0) {
+        service.configureDiffEditor(config);
+      }
+
+      const currentConfig = service.getDiffEditorConfig();
+      return {
+        success: true,
+        config: currentConfig,
+        message: Object.keys(config).length > 0
+          ? `Updated diff editor config`
+          : `Current diff editor config`,
+      };
+    }
+
+    case 'latent_diff_pending': {
+      const pending = service.getPendingDiffConfirms();
+      const entries = Array.from(pending.entries()).map(([target, req]) => ({
+        target,
+        riskLevel: req.riskLevel,
+        conflictsCount: req.conflicts.length,
+        preview: req.preview.slice(0, 200) + (req.preview.length > 200 ? '...' : ''),
+      }));
+
+      return {
+        success: true,
+        count: entries.length,
+        pending: entries,
+        message: entries.length > 0
+          ? `${entries.length} pending edit(s) waiting for confirmation`
+          : 'No pending edits',
       };
     }
 

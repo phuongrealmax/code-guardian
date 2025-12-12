@@ -22,12 +22,16 @@ import {
 } from './rag.types.js';
 import { parseSourceFile, detectLanguage } from './code-parser.js';
 import { createEmbeddingProvider, cosineSimilarity, findTopK } from './embedding.service.js';
+import { HybridSearch, createHybridSearch, HybridSearchResult } from './hybrid-search.js';
+import { BM25Index, createBM25Index } from './bm25.js';
 
 export class RAGService {
   private config: RAGConfig;
   private index: RAGIndex | null = null;
   private embeddingProvider: EmbeddingProvider;
   private buildProgress: IndexBuildProgress | null = null;
+  private hybridSearch: HybridSearch | null = null;
+  private bm25Index: BM25Index | null = null;
   private logger: Logger;
 
   constructor(
@@ -37,6 +41,16 @@ export class RAGService {
     this.config = { ...DEFAULT_RAG_CONFIG, ...config };
     this.logger = new Logger('info', 'RAGService');
     this.embeddingProvider = createEmbeddingProvider(this.config.embeddingProvider);
+
+    // Initialize hybrid search
+    this.hybridSearch = createHybridSearch(this.embeddingProvider, {
+      bm25Weight: 0.4,
+      embeddingWeight: 0.6,
+      minScore: 0.1,
+    });
+
+    // Initialize BM25 index for pure lexical search
+    this.bm25Index = createBM25Index();
 
     // Try to load existing index
     this.loadIndex();
@@ -407,6 +421,112 @@ export class RAGService {
     });
 
     return response;
+  }
+
+  /**
+   * Hybrid search combining BM25 and embedding-based search
+   * This provides better accuracy than either method alone
+   */
+  async searchHybrid(
+    query: RAGQuery
+  ): Promise<RAGSearchResponse & { hybridResults?: HybridSearchResult[] }> {
+    const startTime = Date.now();
+
+    if (!this.hybridSearch || !this.index || this.index.chunks.size === 0) {
+      return {
+        query: query.query,
+        results: [],
+        totalMatches: 0,
+        searchTime: Date.now() - startTime,
+        method: 'hybrid',
+      };
+    }
+
+    this.eventBus.emit({ type: 'rag:search:started', timestamp: new Date(), data: { query, method: 'hybrid' } });
+
+    const limit = query.limit || this.config.searchDefaults.limit;
+    const hybridResults = await this.hybridSearch.search(query.query, limit);
+
+    // Convert to standard RAGResult format
+    const results: RAGResult[] = hybridResults.map(hr => ({
+      chunk: hr.chunk,
+      score: hr.hybridScore,
+      matchType: 'hybrid' as const,
+      highlights: this.extractHighlights(hr.chunk.content, query.query),
+      bm25Score: hr.bm25Score,
+      embeddingScore: hr.embeddingScore,
+      matchedTerms: hr.matchedTerms,
+    }));
+
+    const response: RAGSearchResponse & { hybridResults?: HybridSearchResult[] } = {
+      query: query.query,
+      results,
+      totalMatches: results.length,
+      searchTime: Date.now() - startTime,
+      method: 'hybrid',
+      hybridResults, // Include detailed hybrid results
+    };
+
+    this.eventBus.emit({
+      type: 'rag:search:complete',
+      timestamp: new Date(),
+      data: {
+        query: query.query,
+        resultCount: results.length,
+        searchTime: response.searchTime,
+        method: 'hybrid',
+      }
+    });
+
+    return response;
+  }
+
+  /**
+   * BM25-only search (lexical/keyword search)
+   */
+  searchBM25(query: string, limit: number = 10): { id: string; score: number; matchedTerms: string[] }[] {
+    if (!this.bm25Index) return [];
+    return this.bm25Index.search(query, limit);
+  }
+
+  /**
+   * Rebuild hybrid search index from existing RAG index
+   */
+  async rebuildHybridIndex(): Promise<void> {
+    if (!this.index || !this.hybridSearch) return;
+
+    this.hybridSearch.clear();
+    this.bm25Index?.clear();
+
+    const chunks = Array.from(this.index.chunks.values());
+    await this.hybridSearch.addChunks(chunks);
+
+    // Also add to BM25 index
+    if (this.bm25Index) {
+      for (const chunk of chunks) {
+        this.bm25Index.addDocument({
+          id: chunk.id,
+          content: `${chunk.name} ${chunk.type} ${chunk.content}`,
+        });
+      }
+    }
+
+    this.logger.info(`Rebuilt hybrid index with ${chunks.length} chunks`);
+  }
+
+  /**
+   * Get hybrid search statistics
+   */
+  getHybridStats(): {
+    enabled: boolean;
+    totalChunks: number;
+    bm25Stats: { totalDocuments: number; totalTerms: number; avgDocLength: number };
+  } | null {
+    if (!this.hybridSearch) return null;
+    return {
+      enabled: true,
+      ...this.hybridSearch.getStats(),
+    };
   }
 
   /**

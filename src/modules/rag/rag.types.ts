@@ -71,6 +71,10 @@ export interface RAGResult {
   matchType: 'semantic' | 'keyword' | 'hybrid';
   highlights?: string[]; // Matched text highlights
   relatedChunks?: RAGResult[]; // Related code if requested
+  // Hybrid search specific fields
+  bm25Score?: number; // BM25 lexical search score
+  embeddingScore?: number; // Embedding similarity score
+  matchedTerms?: string[]; // Terms that matched in BM25 search
 }
 
 // Search response

@@ -24,6 +24,20 @@ import { LatentModuleConfig, LatentModuleStatus } from './latent.types.js';
 export * from './latent.types.js';
 export { LatentService } from './latent.service.js';
 
+// Re-export diff editor types
+export {
+  DiffEditor,
+  DiffEditResult,
+  DiffEditorConfig,
+  DiffHunk,
+  DiffLine,
+  ConflictInfo,
+  ConfirmRequest,
+  ConfirmPolicy,
+  DEFAULT_DIFF_EDITOR_CONFIG,
+  createDiffEditor,
+} from './diff-editor.js';
+
 /**
  * Default configuration for Latent Module
  */

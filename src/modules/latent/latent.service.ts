@@ -17,20 +17,22 @@
 import { EventBus } from '../../core/event-bus.js';
 import { Logger } from '../../core/logger.js';
 import { v4 as uuid } from 'uuid';
-import { writeFile, readFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import { join, dirname } from 'path';
-import { execSync } from 'child_process';
+
+import { PatchApplicator } from './latent-patch.js';
+import { DeltaMerger } from './latent-delta.js';
+import { ContextPersistence } from './latent-persistence.js';
+import {
+  DiffEditor,
+  DiffEditResult,
+  DiffEditorConfig,
+  ConfirmRequest,
+} from './diff-editor.js';
 
 import {
   AgentLatentContext,
   LatentPhase,
   LatentDecision,
-  CodeMap,
-  TaskArtifacts,
-  ContextDelta,
   LatentResponse,
-  LatentAction,
   LatentModuleConfig,
   LatentModuleStatus,
   CreateContextParams,
@@ -56,6 +58,15 @@ export class LatentService {
   private logger: Logger;
   private projectRoot: string;
 
+  // Extracted helpers
+  private patchApplicator: PatchApplicator;
+  private deltaMerger: DeltaMerger;
+  private persistence?: ContextPersistence;
+  private diffEditor: DiffEditor;
+
+  // Cleanup interval reference (to clear on shutdown)
+  private cleanupInterval?: ReturnType<typeof setInterval>;
+
   // Statistics
   private stats = {
     totalCreated: 0,
@@ -79,6 +90,14 @@ export class LatentService {
     this.eventBus = eventBus;
     this.logger = logger;
     this.projectRoot = projectRoot;
+
+    // Initialize extracted helpers
+    this.patchApplicator = new PatchApplicator(projectRoot, logger);
+    this.deltaMerger = new DeltaMerger();
+    this.diffEditor = new DiffEditor(projectRoot, logger);
+    if (config.persist && config.persistPath) {
+      this.persistence = new ContextPersistence(config.persistPath, logger);
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -89,13 +108,28 @@ export class LatentService {
     this.logger.info('Initializing Latent Service...');
 
     // Load persisted contexts if enabled
-    if (this.config.persist && this.config.persistPath) {
-      await this.loadPersistedContexts();
+    if (this.persistence) {
+      const data = await this.persistence.load();
+      if (data) {
+        for (const [taskId, context] of data.contexts) {
+          this.contexts.set(taskId, context);
+        }
+        for (const [taskId, entries] of data.history) {
+          this.history.set(taskId, entries);
+        }
+        if (data.stats) {
+          this.stats = data.stats as typeof this.stats;
+        }
+      }
     }
 
-    // Setup cleanup interval
+    // Setup cleanup interval (unref to not block process exit)
     if (this.config.cleanupAfterMs > 0) {
-      setInterval(() => this.cleanupOldContexts(), this.config.cleanupAfterMs);
+      this.cleanupInterval = setInterval(
+        () => this.cleanupOldContexts(),
+        this.config.cleanupAfterMs
+      );
+      this.cleanupInterval.unref();
     }
 
     this.logger.info('Latent Service initialized');
@@ -104,9 +138,15 @@ export class LatentService {
   async shutdown(): Promise<void> {
     this.logger.info('Shutting down Latent Service...');
 
+    // Clear cleanup interval
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = undefined;
+    }
+
     // Persist contexts if enabled
-    if (this.config.persist && this.config.persistPath) {
-      await this.persistContexts();
+    if (this.persistence) {
+      await this.persistence.save(this.contexts, this.history, this.stats);
     }
 
     this.contexts.clear();
@@ -241,7 +281,7 @@ export class LatentService {
 
     // Auto-merge is the key feature of Latent Chain Mode
     if (this.config.autoMerge) {
-      this.mergeDelta(context, delta);
+      this.deltaMerger.merge(context, delta);
     } else if (!force) {
       throw new Error('Auto-merge disabled. Use force=true to update.');
     }
@@ -341,27 +381,10 @@ export class LatentService {
       throw new Error(`Context not found: ${taskId}`);
     }
 
-    const targetPath = join(this.projectRoot, target);
-    const result: AppliedPatch = {
-      target,
-      patch,
-      appliedAt: new Date(),
-      success: false,
-    };
+    // Use extracted patch applicator
+    const result = await this.patchApplicator.applyPatch({ target, patch, dryRun });
 
-    try {
-      if (dryRun) {
-        // Dry run - just validate
-        this.logger.info(`[DRY RUN] Would apply patch to: ${target}`);
-        result.success = true;
-      } else {
-        // Actually apply the patch
-        // For now, we'll use a simple approach
-        // In production, use a proper diff/patch library
-        await this.applyPatchToFile(targetPath, patch);
-        result.success = true;
-      }
-
+    if (result.success) {
       // Record in artifacts
       context.artifacts.patches.push(result);
 
@@ -378,29 +401,73 @@ export class LatentService {
         operation: 'patch',
         phase: context.phase,
       });
-
-      // Emit event
-      this.eventBus.emit({
-        type: 'latent:patch:applied',
-        timestamp: new Date(),
-        data: { taskId, target, success: true },
-      });
-
-      this.logger.info(`Applied patch to: ${target}`);
-    } catch (error) {
-      result.success = false;
-      result.error = error instanceof Error ? error.message : String(error);
-
-      this.eventBus.emit({
-        type: 'latent:patch:applied',
-        timestamp: new Date(),
-        data: { taskId, target, success: false },
-      });
-
-      this.logger.error(`Failed to apply patch to ${target}: ${result.error}`);
     }
 
+    // Emit event
+    this.eventBus.emit({
+      type: 'latent:patch:applied',
+      timestamp: new Date(),
+      data: { taskId, target, success: result.success },
+    });
+
     return result;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      DIFF-BASED EDITING
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Apply a diff with fuzzy conflict detection
+   */
+  async applyDiff(
+    target: string,
+    diffContent: string,
+    options?: { dryRun?: boolean; forceApply?: boolean }
+  ): Promise<DiffEditResult> {
+    return this.diffEditor.applyDiff(target, diffContent, options);
+  }
+
+  /**
+   * Confirm a pending diff edit
+   */
+  async confirmDiff(target: string): Promise<DiffEditResult> {
+    return this.diffEditor.confirmEdit(target);
+  }
+
+  /**
+   * Reject a pending diff edit
+   */
+  rejectDiff(target: string): boolean {
+    return this.diffEditor.rejectEdit(target);
+  }
+
+  /**
+   * Rollback a file to backup
+   */
+  async rollbackDiff(target: string): Promise<boolean> {
+    return this.diffEditor.rollback(target);
+  }
+
+  /**
+   * Configure diff editor
+   */
+  configureDiffEditor(config: Partial<DiffEditorConfig>): void {
+    this.diffEditor.setConfig(config);
+  }
+
+  /**
+   * Get diff editor config
+   */
+  getDiffEditorConfig(): DiffEditorConfig {
+    return this.diffEditor.getConfig();
+  }
+
+  /**
+   * Get pending diff confirmations
+   */
+  getPendingDiffConfirms(): Map<string, ConfirmRequest> {
+    return this.diffEditor.getPendingConfirms();
   }
 
   /**
@@ -538,114 +605,6 @@ export class LatentService {
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Merge delta into context (key feature!)
-   */
-  private mergeDelta(context: AgentLatentContext, delta: ContextDelta): void {
-    // Phase update
-    if (delta.phase) {
-      context.phase = delta.phase;
-    }
-
-    // Code map updates (merge, not replace)
-    if (delta.codeMap) {
-      if (delta.codeMap.files) {
-        context.codeMap.files = [
-          ...new Set([...context.codeMap.files, ...delta.codeMap.files]),
-        ];
-      }
-      if (delta.codeMap.hotSpots) {
-        context.codeMap.hotSpots = [
-          ...new Set([...context.codeMap.hotSpots, ...delta.codeMap.hotSpots]),
-        ];
-      }
-      if (delta.codeMap.components) {
-        context.codeMap.components = [
-          ...new Set([...context.codeMap.components, ...delta.codeMap.components]),
-        ];
-      }
-    }
-
-    // Add constraints (append)
-    if (delta.constraints) {
-      context.constraints = [
-        ...new Set([...context.constraints, ...delta.constraints]),
-      ];
-    }
-
-    // Add risks (append)
-    if (delta.risks) {
-      context.risks = [...new Set([...context.risks, ...delta.risks])];
-    }
-
-    // Add decisions
-    if (delta.decisions) {
-      for (const d of delta.decisions) {
-        const decision: LatentDecision = {
-          ...d,
-          id: d.id || `D${String(context.decisions.length + 1).padStart(3, '0')}`,
-          phase: d.phase || context.phase,
-          createdAt: new Date(),
-        };
-        context.decisions.push(decision);
-      }
-    }
-
-    // Artifact updates (merge)
-    if (delta.artifacts) {
-      if (delta.artifacts.tests) {
-        context.artifacts.tests = [
-          ...new Set([...context.artifacts.tests, ...delta.artifacts.tests]),
-        ];
-      }
-      if (delta.artifacts.endpoints) {
-        context.artifacts.endpoints = [
-          ...new Set([...context.artifacts.endpoints, ...delta.artifacts.endpoints]),
-        ];
-      }
-      if (delta.artifacts.other) {
-        context.artifacts.other = {
-          ...context.artifacts.other,
-          ...delta.artifacts.other,
-        };
-      }
-    }
-
-    // Metadata updates
-    if (delta.metadata) {
-      context.metadata = { ...context.metadata, ...delta.metadata };
-    }
-
-    // Handle removals
-    if (delta.remove) {
-      if (delta.remove.constraints) {
-        context.constraints = context.constraints.filter(
-          (c) => !delta.remove!.constraints!.includes(c)
-        );
-      }
-      if (delta.remove.risks) {
-        context.risks = context.risks.filter(
-          (r) => !delta.remove!.risks!.includes(r)
-        );
-      }
-      if (delta.remove.decisions) {
-        context.decisions = context.decisions.filter(
-          (d) => !delta.remove!.decisions!.includes(d.id)
-        );
-      }
-      if (delta.remove.files) {
-        context.codeMap.files = context.codeMap.files.filter(
-          (f) => !delta.remove!.files!.includes(f)
-        );
-      }
-      if (delta.remove.hotSpots) {
-        context.codeMap.hotSpots = context.codeMap.hotSpots.filter(
-          (h) => !delta.remove!.hotSpots!.includes(h)
-        );
-      }
-    }
-  }
-
-  /**
    * Check if phase transition is valid
    */
   private isValidTransition(from: LatentPhase, to: LatentPhase): boolean {
@@ -677,84 +636,6 @@ export class LatentService {
     });
 
     this.history.set(taskId, history);
-  }
-
-  /**
-   * Apply patch to file (simplified version)
-   */
-  private async applyPatchToFile(filePath: string, patch: string): Promise<void> {
-    // Check if file exists
-    if (!existsSync(filePath)) {
-      // If file doesn't exist and patch starts with creating it
-      if (patch.includes('+++ b/') || patch.includes('+++ new')) {
-        // Extract content from patch and create file
-        const lines = patch.split('\n');
-        const content: string[] = [];
-        for (const line of lines) {
-          if (line.startsWith('+') && !line.startsWith('+++')) {
-            content.push(line.substring(1));
-          }
-        }
-        await mkdir(dirname(filePath), { recursive: true });
-        await writeFile(filePath, content.join('\n'));
-        return;
-      }
-      throw new Error(`File not found: ${filePath}`);
-    }
-
-    // For existing files, use git apply or manual patching
-    try {
-      // Try git apply first
-      const tempPatchFile = join(this.projectRoot, '.ccg', 'temp.patch');
-      await mkdir(dirname(tempPatchFile), { recursive: true });
-      await writeFile(tempPatchFile, patch);
-      execSync(`git apply ${tempPatchFile}`, { cwd: this.projectRoot });
-    } catch {
-      // Fallback: manual simple patching
-      const currentContent = await readFile(filePath, 'utf-8');
-      const patchedContent = this.manualPatch(currentContent, patch);
-      await writeFile(filePath, patchedContent);
-    }
-  }
-
-  /**
-   * Manual patch application (simplified)
-   */
-  private manualPatch(content: string, patch: string): string {
-    const lines = content.split('\n');
-    const patchLines = patch.split('\n');
-    const result: string[] = [];
-    let contentIndex = 0;
-
-    for (const patchLine of patchLines) {
-      if (patchLine.startsWith('@@')) {
-        // Parse hunk header
-        const match = patchLine.match(/@@ -(\d+),?(\d+)? \+(\d+),?(\d+)? @@/);
-        if (match) {
-          const startLine = parseInt(match[1], 10) - 1;
-          // Copy lines up to the start
-          while (contentIndex < startLine) {
-            result.push(lines[contentIndex++]);
-          }
-        }
-      } else if (patchLine.startsWith('-') && !patchLine.startsWith('---')) {
-        // Remove line - skip in original
-        contentIndex++;
-      } else if (patchLine.startsWith('+') && !patchLine.startsWith('+++')) {
-        // Add line
-        result.push(patchLine.substring(1));
-      } else if (patchLine.startsWith(' ')) {
-        // Context line
-        result.push(lines[contentIndex++]);
-      }
-    }
-
-    // Copy remaining lines
-    while (contentIndex < lines.length) {
-      result.push(lines[contentIndex++]);
-    }
-
-    return result.join('\n');
   }
 
   /**
@@ -802,64 +683,5 @@ export class LatentService {
     const tokensSaved = this.stats.totalDeltasMerged * 500;
     const contexts = this.stats.totalCreated || 1;
     return Math.round(tokensSaved / contexts);
-  }
-
-  /**
-   * Persist contexts to disk
-   */
-  private async persistContexts(): Promise<void> {
-    if (!this.config.persistPath) return;
-
-    try {
-      const data = {
-        contexts: Array.from(this.contexts.entries()),
-        history: Array.from(this.history.entries()),
-        stats: this.stats,
-      };
-      await mkdir(dirname(this.config.persistPath), { recursive: true });
-      await writeFile(this.config.persistPath, JSON.stringify(data, null, 2));
-      this.logger.debug(`Persisted ${this.contexts.size} contexts`);
-    } catch (error) {
-      this.logger.error(`Failed to persist contexts: ${error}`);
-    }
-  }
-
-  /**
-   * Load persisted contexts
-   */
-  private async loadPersistedContexts(): Promise<void> {
-    if (!this.config.persistPath || !existsSync(this.config.persistPath)) {
-      return;
-    }
-
-    try {
-      const content = await readFile(this.config.persistPath, 'utf-8');
-      const data = JSON.parse(content);
-
-      // Restore contexts
-      for (const [taskId, context] of data.contexts) {
-        context.createdAt = new Date(context.createdAt);
-        context.updatedAt = new Date(context.updatedAt);
-        this.contexts.set(taskId, context);
-      }
-
-      // Restore history
-      for (const [taskId, entries] of data.history) {
-        const restored = entries.map((e: ContextHistoryEntry) => ({
-          ...e,
-          timestamp: new Date(e.timestamp),
-        }));
-        this.history.set(taskId, restored);
-      }
-
-      // Restore stats
-      if (data.stats) {
-        this.stats = data.stats;
-      }
-
-      this.logger.info(`Loaded ${this.contexts.size} persisted contexts`);
-    } catch (error) {
-      this.logger.error(`Failed to load persisted contexts: ${error}`);
-    }
   }
 }
