@@ -26,10 +26,12 @@ That's it! The quickstart command handles everything automatically.
 
 When you run `ccg quickstart`, here's what happens behind the scenes:
 
-### 1. Auto-Initialization (5 seconds)
+### 1. Auto-Initialization & Migration (5 seconds)
 - Creates `.ccg/` directory for configuration and data
 - Sets up hooks for Claude Code integration
 - Configures MCP server settings
+- **Auto-migrates** old configurations (if upgrading from previous version)
+- **Validates** configuration and auto-fixes common issues
 
 ### 2. Codebase Scan (~30 seconds)
 - Recursively scans your project files
@@ -203,7 +205,9 @@ To upgrade: `ccg activate` or visit [codeguardian.studio/pricing](https://codegu
 Yes! Edit `.ccg/config.json` after initialization. See [User Guide](USER_GUIDE.md) for details.
 
 ### Does it work offline?
-Yes! CCG runs entirely locally. No API calls, no cloud dependencies.
+Yes! **Dev tier** runs entirely locally with no cloud dependencies.
+
+Team/Enterprise licenses cache validation for 24 hours, so you can work offline after initial verification. See [License System](LICENSE_SYSTEM.md) for details.
 
 ### What languages are supported?
 - JavaScript/TypeScript (best support)
@@ -229,6 +233,38 @@ After `ccg quickstart`, the MCP server is automatically configured. Just:
 ### Analysis takes too long
 - Try reducing max-files: `ccg code-optimize --max-files 500 --report`
 - Exclude large directories in `.ccg/config.json`
+
+## Upgrading from Previous Versions
+
+If you're upgrading from a previous version of CCG, the quickstart command handles migration automatically:
+
+```bash
+# Run quickstart - auto-detects and migrates old config
+ccg quickstart
+# → Found config v0.9.0, current is v1.3.0
+# → Migrating configuration...
+# → Migration complete!
+```
+
+### Migration Paths Supported
+
+| From | To | Auto-Migrated |
+|------|-----|---------------|
+| 0.x | 1.0.0 | Module restructuring, new defaults |
+| 1.0.0 | 1.2.0 | AutoAgent, Latent modules |
+| 1.2.0 | 1.3.0 | Context profiles, Security STRIDE |
+
+### Manual Configuration Check
+
+```bash
+# Validate configuration
+ccg doctor
+
+# Auto-fix configuration issues
+ccg doctor --fix
+```
+
+---
 
 ## Learn More
 

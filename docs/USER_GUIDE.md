@@ -5,11 +5,17 @@ Complete guide to using Code Guardian Studio for code analysis and refactoring.
 ## Table of Contents
 
 1. [Getting Started](#getting-started)
-2. [CLI Commands](#cli-commands)
-3. [Understanding Reports](#understanding-reports)
-4. [Best Practices](#best-practices)
-5. [Under the Hood](#under-the-hood)
-6. [Appendix: MCP Tools for AI Agents](#appendix-mcp-tools-for-ai-agents)
+2. [License Tiers](#license-tiers)
+3. [CLI Commands](#cli-commands)
+4. [Multi-repo Setup](#multi-repo-setup)
+5. [Context Profiles](#context-profiles)
+6. [Security Analysis (STRIDE)](#security-analysis-stride)
+7. [Onboarding & Migration](#onboarding--migration)
+8. [Using CCG inside Claude Code](#using-ccg-inside-claude-code)
+9. [Understanding Reports](#understanding-reports)
+10. [Best Practices](#best-practices)
+11. [Under the Hood](#under-the-hood)
+12. [Appendix: MCP Tools for AI Agents](#appendix-mcp-tools-for-ai-agents)
 
 ---
 
@@ -41,6 +47,135 @@ ccg init
 # 4. Run analysis
 ccg code-optimize --report
 ```
+
+---
+
+## License Tiers
+
+Code Guardian Studio operates on an open-core model with three license tiers:
+
+### Dev Tier (Free)
+
+The Dev tier is completely free and works fully offline. No license key or internet connection required.
+
+**Included Features:**
+- Code Optimizer (basic analysis)
+- Memory module (SQLite persistence)
+- Guard module (security rules)
+- Workflow/task management
+- Basic markdown reports
+
+**Usage:**
+```bash
+# No setup needed - just install and run
+ccg code-optimize --report
+```
+
+### Team Tier ($19/month)
+
+The Team tier unlocks advanced analysis and reporting features.
+
+**Additional Features:**
+- Advanced reports with Tech Debt Index (TDI)
+- Before/After comparisons
+- Trend charts and history
+- ROI analysis
+- Latent Chain Mode
+- Multi-Agent coordination
+- Thinking models
+- Priority support
+
+**Setup:**
+```bash
+# Save license key to project
+echo "CGS-TEAM-XXXX-YYYY" > .ccg/license.key
+
+# Or set globally
+echo "CGS-TEAM-XXXX-YYYY" > ~/.ccg/license.key
+```
+
+### Enterprise Tier
+
+Enterprise tier includes everything in Team plus:
+- SSO/SAML integration
+- SOC2 compliance features
+- Audit logging
+- Dedicated support
+- Custom integrations
+- Unlimited seats
+
+Contact sales@codeguardian.studio for Enterprise pricing.
+
+### How License Verification Works
+
+CCG uses a `LicenseGateway` to manage license verification:
+
+1. **Offline-First**: Dev tier features always work without internet
+2. **Local Cache**: Team/Enterprise licenses are cached for 24 hours
+3. **Graceful Fallback**: If verification fails, falls back to cached license or Dev tier
+
+The gateway is designed so your development workflow is never blocked by license issues:
+
+| Scenario | Behavior |
+|----------|----------|
+| No license | Dev tier features |
+| Valid license + online | Full tier features |
+| Valid license + offline | Cached tier (24h grace) |
+| Expired cache | Falls back to Dev tier |
+
+**Note**: In the current version, the cloud API is stubbed. License keys are validated locally by format only. Future versions will connect to the official Code Guardian Studio license server.
+
+### Self-Hosting vs Official Cloud
+
+Code Guardian Studio follows an **open-core model**:
+
+#### Dev Tier (Self-Hosted)
+
+The Dev tier is **fully local and self-hostable**:
+- All features work offline
+- No external dependencies
+- No license key required
+- Ideal for individual developers and open-source projects
+
+```bash
+# Works completely offline
+ccg code-optimize --report
+```
+
+#### Team/Enterprise (Official Cloud)
+
+Team and Enterprise tiers in the official product are powered by:
+- **Cloud backend** at `api.codeguardian.studio`
+- **Paddle** for billing (Merchant of Record)
+- License verification via `LicenseGateway`
+
+Purchasing at [codeguardian.studio/pricing](https://codeguardian.studio/pricing) provides:
+- License key delivered via email
+- Access to advanced features
+- Priority support
+
+#### Advanced: Custom Backend
+
+For advanced users who want to implement their own license backend:
+
+1. Implement the `LicenseGateway` interface from `@ccg/cloud-client`
+2. Create your own verification API endpoint
+3. Handle billing separately
+
+```typescript
+import { LicenseGateway, setLicenseGateway } from '@ccg/cloud-client';
+
+class MyCustomGateway implements LicenseGateway {
+  // Your implementation
+}
+
+setLicenseGateway(new MyCustomGateway());
+```
+
+**Note**: Custom backends are **not officially supported**. The reference implementation
+in `src/modules/license/` is provided for educational purposes only.
+
+See [LICENSE_SYSTEM.md](./LICENSE_SYSTEM.md) for architecture details.
 
 ---
 
@@ -80,6 +215,7 @@ ccg init                    # Standard profile
 ccg init --profile minimal  # Minimal config
 ccg init --profile strict   # Strict rules
 ccg init --force            # Overwrite existing
+ccg init --multi-repo       # Create multi-repo config template
 ```
 
 **What it creates:**
@@ -87,6 +223,7 @@ ccg init --force            # Overwrite existing
 - `config.json` configuration
 - `.claude/hooks.json` for Claude Code integration
 - `.mcp.json` MCP server config
+- `.ccg/config.yml` (if `--multi-repo` flag used)
 
 ---
 
@@ -108,6 +245,9 @@ ccg code-optimize --report
 
 # Get JSON for scripts/CI
 ccg code-optimize --json > analysis.json
+
+# Analyze specific repo (multi-repo mode)
+ccg code-optimize --repo payments --report
 
 # See advanced options
 ccg code-optimize --help-advanced
@@ -179,6 +319,521 @@ ccg doctor
 - Warnings (non-critical)
 - Info (suggestions)
 - Fix commands for each issue
+
+---
+
+## Multi-repo Setup
+
+CCG supports managing multiple repositories or modules from a single configuration. This is ideal for:
+
+- **Monorepos** with multiple packages
+- **Multi-service architectures** with related services
+- **Large organizations** tracking multiple codebases
+
+### Quick Setup
+
+```bash
+# Initialize with multi-repo template
+ccg init --multi-repo
+
+# Edit the configuration
+# nano .ccg/config.yml
+
+# Analyze a specific repository
+ccg code-optimize --repo core --report
+
+# View trends for a repo
+ccg report --repo payments --trend
+```
+
+### Configuration File
+
+Multi-repo configuration is stored in `.ccg/config.yml`:
+
+```yaml
+# Code Guardian Studio - Multi-Repository Configuration
+version: "1.0"
+
+# Default repository when --repo is not specified
+defaultRepo: core
+
+# List of repositories/modules to manage
+repos:
+  # Main repository (current directory)
+  - name: core
+    path: "."
+    description: "Main application code"
+
+  # Separate service in parent directory
+  - name: payments
+    path: "../payments"
+    description: "Payment processing service"
+
+  # Monorepo sub-package
+  - name: frontend
+    path: "./apps/frontend"
+    description: "Frontend web application"
+    excludePatterns:
+      - "**/*.test.tsx"
+      - "**/__mocks__/**"
+
+  # Shared library
+  - name: shared
+    path: "./packages/shared"
+    description: "Shared utilities and types"
+```
+
+### Configuration Options
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `version` | Yes | Config file version (currently "1.0") |
+| `defaultRepo` | No | Default repo when `--repo` is omitted |
+| `repos` | Yes | Array of repository configurations |
+| `repos[].name` | Yes | Unique identifier (alphanumeric + hyphens) |
+| `repos[].path` | Yes | Path to repository (relative or absolute) |
+| `repos[].description` | No | Human-readable description |
+| `repos[].excludePatterns` | No | Glob patterns to exclude from analysis |
+| `repos[].includePatterns` | No | Glob patterns to include (overrides excludes) |
+
+### CLI Commands with Multi-repo
+
+All main commands support the `--repo` flag:
+
+```bash
+# Quickstart for a specific repo
+ccg quickstart --repo frontend
+
+# Analyze specific repo
+ccg code-optimize --repo payments --report
+
+# View history for a repo
+ccg report --repo core --summary
+
+# View trends for a repo
+ccg report --repo frontend --trend
+```
+
+### Example: Monorepo Setup
+
+For a typical monorepo structure:
+
+```
+my-company/
+├── .ccg/
+│   └── config.yml
+├── apps/
+│   ├── web/
+│   ├── mobile/
+│   └── api/
+├── packages/
+│   ├── shared/
+│   ├── ui-components/
+│   └── utils/
+└── services/
+    ├── auth/
+    └── payments/
+```
+
+Configuration:
+
+```yaml
+version: "1.0"
+defaultRepo: api
+
+repos:
+  # Applications
+  - name: web
+    path: "./apps/web"
+    description: "Web application (Next.js)"
+
+  - name: mobile
+    path: "./apps/mobile"
+    description: "Mobile app (React Native)"
+
+  - name: api
+    path: "./apps/api"
+    description: "Backend API (NestJS)"
+
+  # Packages
+  - name: shared
+    path: "./packages/shared"
+    description: "Shared types and utilities"
+
+  - name: ui
+    path: "./packages/ui-components"
+    description: "Reusable UI components"
+
+  # Services
+  - name: auth
+    path: "./services/auth"
+    description: "Authentication service"
+
+  - name: payments
+    path: "./services/payments"
+    description: "Payment processing"
+    excludePatterns:
+      - "**/migrations/**"
+      - "**/*.seed.ts"
+```
+
+### Example: Multi-Service Setup
+
+For separate repositories managed together:
+
+```
+workspace/
+├── main-app/           # Main CCG config lives here
+│   └── .ccg/
+│       └── config.yml
+├── auth-service/
+├── payment-service/
+└── notification-service/
+```
+
+Configuration (in `main-app/.ccg/config.yml`):
+
+```yaml
+version: "1.0"
+defaultRepo: main
+
+repos:
+  - name: main
+    path: "."
+    description: "Main application"
+
+  - name: auth
+    path: "../auth-service"
+    description: "Authentication microservice"
+
+  - name: payments
+    path: "../payment-service"
+    description: "Payment processing microservice"
+
+  - name: notifications
+    path: "../notification-service"
+    description: "Notification service"
+```
+
+### Session and Report Tracking
+
+Sessions and Tech Debt Index are tracked **per repository**:
+
+```bash
+# Each repo has independent history
+ccg report --repo core --summary
+ccg report --repo payments --summary
+
+# Compare trends across repos
+ccg report --repo core --trend
+ccg report --repo payments --trend
+```
+
+Reports are saved with the repo name in the filename:
+```
+docs/reports/optimization-2024-01-15-core-abc123.md
+docs/reports/optimization-2024-01-15-payments-def456.md
+```
+
+### Team Tier Benefits
+
+With a Team license, multi-repo reports include:
+
+- **Cross-repo comparisons**: Compare Tech Debt Index across all repos
+- **Aggregated trends**: See organization-wide improvement
+- **Per-repo ROI**: Time savings calculated per repository
+
+### Validation and Error Handling
+
+CCG validates your configuration and provides helpful errors:
+
+```bash
+# Missing config file
+$ ccg code-optimize --repo payments
+Error: --repo flag requires .ccg/config.yml
+Run "ccg init --multi-repo" to create one.
+
+# Unknown repo name
+$ ccg code-optimize --repo unknown
+Error: Repository "unknown" not found in config.yml
+Available repos: core, payments, frontend
+
+# Invalid repo path
+$ ccg code-optimize --repo payments
+Error: Repository path does not exist: ../payments
+```
+
+### Best Practices
+
+1. **Use descriptive names**: `payment-api` instead of `svc1`
+2. **Set a defaultRepo**: Saves typing for your most-used repo
+3. **Use relative paths**: Makes config portable across machines
+4. **Document each repo**: Descriptions help team members understand structure
+5. **Customize excludePatterns**: Skip test files, migrations, generated code
+
+---
+
+## Context Profiles
+
+CCG supports environment-aware configuration profiles for different IDEs and contexts.
+
+### Built-in Profiles
+
+| Profile | Auto-Detection | Description |
+|---------|---------------|-------------|
+| `cli` | `CCG_PROFILE=cli` | Default for command-line usage |
+| `vscode` | `VSCODE_PID` env or `.vscode/` folder | Optimized for VSCode extension |
+| `cursor` | `Cursor` process or `.cursor/` folder | Optimized for Cursor IDE with AI-first workflow |
+| `mcp` | `CCG_MCP_MODE=true` | MCP server mode for Claude Desktop |
+
+### Profile Features
+
+Each profile can customize:
+- **Module settings**: Enable/disable modules, adjust thresholds
+- **Notifications**: Status bar, inline notifications, verbosity
+- **Conventions**: File naming, variable naming rules
+
+### Auto-Detection
+
+CCG automatically detects your environment:
+```bash
+# Auto-detected when running in VSCode
+ccg status
+# → Profile: vscode (auto-detected via VSCODE_PID)
+
+# Force a specific profile
+CCG_PROFILE=cli ccg code-optimize --report
+```
+
+### Custom Profiles
+
+Create custom profiles in `.ccg/profiles.json`:
+```json
+{
+  "activeProfile": "my-team",
+  "autoDetect": true,
+  "profiles": [
+    {
+      "id": "my-team",
+      "name": "My Team Profile",
+      "type": "custom",
+      "extends": "vscode",
+      "enabled": true,
+      "overrides": {
+        "modules": {
+          "guard": { "strictMode": true },
+          "latent": { "autoAttach": true }
+        },
+        "notifications": { "verbosity": "minimal" }
+      }
+    }
+  ]
+}
+```
+
+### MCP Tools for Profiles
+
+```typescript
+profile_list         // List all available profiles
+profile_get          // Get profile by ID
+profile_switch       // Switch active profile
+profile_create       // Create custom profile
+profile_detect       // Auto-detect best profile
+profile_status       // Get current profile status
+```
+
+---
+
+## Security Analysis (STRIDE)
+
+CCG includes a Security Agent that performs STRIDE threat modeling on your codebase.
+
+### What is STRIDE?
+
+STRIDE is a threat modeling framework developed by Microsoft:
+
+| Threat | Description | Example |
+|--------|-------------|---------|
+| **S**poofing | Impersonating a user or system | Fake authentication tokens |
+| **T**ampering | Modifying data or code | SQL injection, XSS |
+| **R**epudiation | Denying actions without proof | Missing audit logs |
+| **I**nformation Disclosure | Exposing confidential data | Hardcoded secrets, error leaks |
+| **D**enial of Service | Making system unavailable | Resource exhaustion, infinite loops |
+| **E**levation of Privilege | Gaining unauthorized access | IDOR, missing authorization |
+
+### Running Security Analysis
+
+```bash
+# Full STRIDE analysis
+ccg security-scan
+
+# Analyze specific files
+ccg security-scan src/api/
+
+# Output as JSON for CI
+ccg security-scan --json > security-report.json
+```
+
+### Security Rules
+
+The Guard module includes security-focused rules:
+
+| Rule | Description |
+|------|-------------|
+| `blockSqlInjection` | Detect SQL injection vulnerabilities |
+| `blockHardcodedSecrets` | Find hardcoded API keys, passwords |
+| `blockSwallowedExceptions` | Empty catch blocks hiding errors |
+
+### MCP Tools for Security
+
+```typescript
+security_stride_analyze   // Full STRIDE analysis
+security_check_file       // Analyze single file
+security_get_threats      // List detected threats
+security_agent_select     // Select security agent for task
+```
+
+### CI Integration
+
+```yaml
+# .github/workflows/security.yml
+- name: Security Scan
+  run: |
+    ccg security-scan --json > security.json
+    if grep -q '"severity": "critical"' security.json; then
+      echo "Critical security issues found!"
+      exit 1
+    fi
+```
+
+---
+
+## Onboarding & Migration
+
+CCG includes an Onboarding Agent that helps with initial setup and configuration migration.
+
+### Auto-Migration
+
+When you upgrade CCG, your configuration is automatically migrated:
+
+```bash
+# CCG detects old config and offers migration
+ccg init
+# → Found config v0.9.0, current is v1.2.0
+# → Migrating configuration...
+# → Migration complete!
+```
+
+### Migration Path
+
+| From Version | To Version | Changes |
+|--------------|------------|---------|
+| 0.x | 1.0.0 | Restructure modules, add new defaults |
+| 1.0.0 | 1.2.0 | Add autoAgent, latent modules |
+
+### Validation & Auto-Fix
+
+CCG validates your configuration and can auto-fix common issues:
+
+```bash
+# Check configuration health
+ccg doctor
+
+# Auto-fix configuration issues
+ccg doctor --fix
+```
+
+**Common fixes:**
+- Missing required modules → Adds with defaults
+- Invalid thresholds → Corrects to valid ranges
+- Deprecated options → Migrates to new format
+
+### MCP Tools for Onboarding
+
+```typescript
+onboarding_status     // Check migration/validation status
+onboarding_init       // Initialize new project
+onboarding_migrate    // Migrate old configuration
+onboarding_validate   // Validate current config
+onboarding_autofix    // Auto-fix configuration issues
+onboarding_welcome    // Show welcome message & next steps
+```
+
+### Setup Wizard
+
+For new projects, CCG guides you through setup:
+
+```bash
+ccg init --wizard
+
+# Interactive prompts:
+# → Project type? (typescript-node, typescript-react, python, other)
+# → Enable strict mode? (y/n)
+# → Configure Claude Code integration? (y/n)
+```
+
+---
+
+## Using CCG inside Claude Code
+
+**This is the recommended way to use CCG.** Running CCG inside Claude Code (or Claude Desktop) gives you the full power of AI-assisted code analysis without copy-pasting code or memorizing commands.
+
+### Why Use Claude Code?
+
+| CLI Approach | Claude Code Approach |
+|--------------|---------------------|
+| Run `ccg code-optimize --report` | "Analyze this codebase and show me the hotspots" |
+| Copy output to chat for analysis | Direct analysis with full context |
+| Manually interpret scores | Claude explains what the scores mean |
+| Look up docs for options | Just describe what you want |
+
+### Quick Setup
+
+```bash
+# 1. Install CCG
+npm install -g codeguardian-studio
+
+# 2. Initialize in your project
+cd /path/to/project
+ccg init
+
+# 3. Open project in Claude Code and start chatting
+```
+
+### Example Interactions
+
+**Get a quick health check:**
+> "Use Code Guardian Studio to scan this repository and show me the top hotspots."
+
+**Run targeted analysis:**
+> "Run the code optimization workflow on the payments service only."
+
+**Understand results:**
+> "Why is auth/login.ts flagged as a hotspot? How should I fix it?"
+
+**Track progress:**
+> "Compare the current code quality with our last analysis."
+
+### Detailed Setup Guide
+
+For complete setup instructions including:
+- Prerequisites (Node.js, npm versions)
+- MCP server configuration
+- Environment variables
+- Troubleshooting tips
+
+See the dedicated [Claude Code Integration Guide](CLAUDE_CODE_SETUP.md).
+
+### When to Use CLI vs Claude Code
+
+| Use CLI when... | Use Claude Code when... |
+|-----------------|-------------------------|
+| Running in CI/CD pipelines | Interactive analysis |
+| Scripting automated checks | Understanding results |
+| Quick one-off scans | Planning refactoring |
+| Generating reports for documentation | Getting AI assistance |
+
+**Tip:** Use both together - run `ccg code-optimize --json` in CI, then discuss results with Claude Code.
 
 ---
 
@@ -340,6 +995,56 @@ ccg code-optimize --report
 
 # Compare reports to track improvement
 ```
+
+### Quick Fixes vs Full Optimization
+
+Not every situation calls for the same approach. Here's when to use each:
+
+| Scenario | Approach | Tool/Command |
+|----------|----------|--------------|
+| Found a bug in one file | Quick fix | Claude Code: "Fix this specific issue" |
+| Pre-commit check | Quick scan | `ccg code-optimize --ci --threshold 70` |
+| Sprint planning | Full analysis | `ccg code-optimize --report` |
+| Before major refactor | Deep analysis | Claude Code: "Analyze and plan refactoring" |
+| Tech debt review | Comprehensive report | `ccg code-optimize --strategy complexity --report` |
+
+**Quick fixes** are best when:
+- You know exactly what file needs work
+- The fix is isolated (doesn't affect other files)
+- You need immediate results
+
+**Full optimization** is best when:
+- You're planning sprint work
+- You want to track progress over time
+- You need to understand the whole codebase
+- You're onboarding new team members
+
+### Combining CLI with Claude Code
+
+The most effective workflow uses **both** CLI and Claude Code:
+
+**Step 1: Run CLI analysis**
+```bash
+ccg code-optimize --report
+```
+
+**Step 2: Discuss results with Claude**
+> "I just ran ccg code-optimize. The report shows these hotspots: [paste top 3]. Help me prioritize and create a refactoring plan."
+
+**Step 3: Let Claude implement fixes**
+> "Start with the auth/login.ts hotspot. Show me the specific issues and fix them."
+
+**Step 4: Verify improvements**
+```bash
+ccg code-optimize --report
+# Compare scores with previous report
+```
+
+**Why this works:**
+- CLI gives you repeatable, measurable metrics
+- Claude Code provides intelligent analysis and implementation
+- Reports create accountability and track progress
+- The combination catches issues neither would alone
 
 ### CI/CD Integration
 
@@ -576,6 +1281,36 @@ Phase 4 (Review):
 - Tasks stay focused per phase
 - Context doesn't explode (only deltas shared)
 - AI can "go back" to earlier phases if needed
+
+### AST Analysis
+
+CCG uses **TypeScript parser** for accurate code analysis:
+
+**How it works:**
+- Parses code into Abstract Syntax Tree (AST)
+- Extracts functions, classes, imports accurately
+- Calculates true cyclomatic complexity
+- Identifies code patterns (not just regex matching)
+
+**Benefits:**
+- More accurate than regex-based analysis
+- Works with TypeScript, JavaScript, JSX/TSX
+- Proper handling of nested structures
+
+### Hybrid Search (BM25)
+
+CCG combines multiple search strategies for better results:
+
+| Strategy | Description | Use Case |
+|----------|-------------|----------|
+| **BM25** | Term frequency scoring | Finding specific functions/variables |
+| **Semantic** | Vector similarity | Finding related concepts |
+| **Hybrid** | Combined scoring | Best overall results |
+
+**How BM25 helps:**
+- Better ranking for exact term matches
+- Handles long/short queries differently
+- Configurable weighting between strategies
 
 ### Memory System
 
@@ -831,4 +1566,4 @@ For complete tool schemas and examples, see the [original Vietnamese guide](USER
 
 ---
 
-**Last updated:** 2025-12-05
+**Last updated:** 2025-12-12

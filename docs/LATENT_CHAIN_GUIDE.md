@@ -2,18 +2,19 @@
 
 > Hướng dẫn sử dụng Latent Chain Mode trong Claude Code Guardian
 >
-> **Version 1.2.2** | Updated: November 30, 2025
+> **Version 1.3.0** | Updated: December 12, 2025
 
 ## Mục lục
 
 1. [Tổng quan](#tổng-quan)
-2. [3 Flow Commands (NEW!)](#3-flow-commands)
+2. [3 Flow Commands](#3-flow-commands)
 3. [Flow chuẩn 5 bước](#flow-chuẩn-5-bước)
-4. [Output Format với Phase Icons](#output-format)
-5. [Auto-Attach Feature](#auto-attach-feature)
-6. [Ví dụ thực tế](#ví-dụ-thực-tế)
-7. [Prompt Pattern cho Claude](#prompt-pattern-cho-claude)
-8. [Tips & Best Practices](#tips--best-practices)
+4. [Diff-Based Editing (NEW!)](#diff-based-editing-new)
+5. [Output Format với Phase Icons](#output-format)
+6. [Auto-Attach Feature](#auto-attach-feature)
+7. [Ví dụ thực tế](#ví-dụ-thực-tế)
+8. [Prompt Pattern cho Claude](#prompt-pattern-cho-claude)
+9. [Tips & Best Practices](#tips--best-practices)
 
 ---
 
@@ -371,6 +372,118 @@ Trong phase `impl`, dùng patch thay vì paste code:
 }
 ```
 
+---
+
+## Diff-Based Editing (NEW!)
+
+> **v1.3.0** - Advanced patch application system
+
+### Tại sao dùng Diff-Based Editing?
+
+| Traditional | Diff-Based |
+|-------------|------------|
+| Paste full file content | Chỉ gửi thay đổi (diff) |
+| ~500-2000 tokens/file | ~50-200 tokens/patch |
+| Dễ conflict | Auto-merge thông minh |
+| Phải đọc lại cả file | Chỉ focus vào phần sửa |
+
+### Unified Diff Format
+
+CCG sử dụng **unified diff format** chuẩn:
+
+```diff
+--- a/src/auth/token.ts
++++ b/src/auth/token.ts
+@@ -45,3 +45,5 @@
+ const token = generateToken();
+-// TODO: Add refresh logic
++scheduleTokenRefresh(token, 50 * 60 * 1000);
++logger.info('Token refresh scheduled');
+```
+
+**Giải thích:**
+- `---` / `+++`: File gốc vs file mới
+- `@@`: Vị trí thay đổi (line 45, 3 dòng context)
+- ` ` (space): Dòng không đổi
+- `-`: Dòng bị xóa
+- `+`: Dòng được thêm
+
+### PatchApplicator
+
+CCG tự động xử lý patches:
+
+1. **Thử git apply** trước (nếu có git)
+2. **Fallback manual patch** nếu không có git
+3. **Tạo file mới** nếu patch tạo file
+
+```typescript
+// Internal API
+const applicator = new PatchApplicator(projectRoot, logger);
+const result = await applicator.applyPatch({
+  target: 'src/auth/token.ts',
+  patch: unifiedDiff,
+  dryRun: false // Set true để preview
+});
+```
+
+### Dry Run Mode
+
+Kiểm tra patch trước khi apply:
+
+```json
+{
+  "tool": "latent_apply_patch",
+  "args": {
+    "taskId": "fix-auth",
+    "target": "src/auth/token.ts",
+    "patch": "...",
+    "dryRun": true
+  }
+}
+```
+
+### DeltaMerger
+
+Context được merge thông minh, không replace:
+
+```json
+// Update 1
+{ "delta": { "risks": ["Risk A"] } }
+
+// Update 2
+{ "delta": { "risks": ["Risk B"] } }
+
+// Kết quả: risks = ["Risk A", "Risk B"]
+// Không phải: risks = ["Risk B"]
+```
+
+**Merge rules:**
+- **Arrays**: Append + deduplicate
+- **Objects**: Deep merge
+- **Primitives**: Replace
+
+### Best Practices cho Diff-Based Editing
+
+1. **Giữ patch nhỏ** - 1 patch = 1 thay đổi logic
+2. **Thêm context** - Ít nhất 3 dòng context trước/sau
+3. **Test dryRun** - Luôn preview trước patch phức tạp
+4. **Track artifacts** - Update context sau mỗi patch
+
+```json
+// Sau khi apply patch
+{
+  "tool": "latent_context_update",
+  "args": {
+    "taskId": "fix-auth",
+    "delta": {
+      "artifacts": {
+        "patches": ["src/auth/token.ts"]
+      }
+    }
+  }
+}
+```
+
 Sau đó update artifacts:
 
 ```json
@@ -620,6 +733,14 @@ Khi token gần threshold (70-85%):
 
 ## Changelog
 
+### v1.3.0 (2025-12-12)
+- **NEW**: Diff-Based Editing with `PatchApplicator`
+- **NEW**: `DeltaMerger` for intelligent context merging
+- **NEW**: Unified diff format support
+- **NEW**: Dry run mode for patch preview
+- **Updated**: Best practices for diff-based workflows
+- **Updated**: Examples with unified diff format
+
 ### v1.2.2 (2025-11-30)
 - **NEW**: 3 Flow Commands (`/latent-fix`, `/latent-feature`, `/latent-review`)
 - **NEW**: `/latent-status` quick status check
@@ -633,4 +754,4 @@ Khi token gần threshold (70-85%):
 
 ---
 
-*Claude Code Guardian - Latent Chain Mode v1.2.2*
+*Claude Code Guardian - Latent Chain Mode v1.3.0*
