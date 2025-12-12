@@ -129,7 +129,7 @@ export default function Home() {
               <h3>IDE-Native</h3>
               <p>
                 VS Code extension shows Tech Debt Index in your status bar.
-                Claude Code MCP integration means you stay in your editor.
+                <strong>Context Profiles</strong> auto-detect VSCode, Cursor, or CLI mode.
               </p>
             </div>
             <div className="feature-card stagger-item">
@@ -186,6 +186,14 @@ export default function Home() {
               <p>
                 <strong>GitHub Action</strong> PR comments + quality gates. VS Code extension.
                 Multi-repo config for monorepos. Claude Code MCP integration.
+              </p>
+            </div>
+            <div className="feature-card stagger-item">
+              <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem', background: 'var(--primary)'}}>Team</span>
+              <h3>Security Analysis (STRIDE)</h3>
+              <p>
+                <strong>Threat modeling</strong> built-in. Detect SQL injection, hardcoded secrets,
+                and vulnerabilities using Microsoft&apos;s STRIDE framework.
               </p>
             </div>
           </div>
@@ -352,8 +360,9 @@ export default function Home() {
               <ul>
                 <li>Core CLI & hotspot detection</li>
                 <li>Tech Debt Index per run</li>
-                <li>Basic markdown reports</li>
-                <li>GitHub Actions template</li>
+                <li>AST Analysis (JS/TS)</li>
+                <li>Auto-migration & Onboarding Agent</li>
+                <li>Context Profiles (IDE auto-detect)</li>
                 <li>Fully local, no license</li>
               </ul>
               <a href="#get-started" className="btn btn-secondary">Get Started</a>
@@ -431,8 +440,44 @@ export default function Home() {
             <div className="feature-card" style={{textAlign: 'left'}}>
               <h3>What languages are supported?</h3>
               <p style={{lineHeight: 1.8}}>
-                JavaScript/TypeScript have the best support. Python, Java, Go, Rust, and C/C++ work
-                with basic metrics. Any language with recognizable syntax gets file-level analysis.
+                <strong>JavaScript/TypeScript</strong> have full AST-based analysis for precise complexity
+                and function-level metrics. Python, Java, Go, Rust, and C/C++ work with basic metrics.
+                Any language with recognizable syntax gets file-level analysis.
+              </p>
+            </div>
+
+            <div className="feature-card" style={{textAlign: 'left'}}>
+              <h3>Is my code sent to any server?</h3>
+              <p style={{lineHeight: 1.8}}>
+                <strong>No.</strong> CCG runs 100% locally. All analysis data (memories, tasks, reports,
+                checkpoints) is stored in the <code>.ccg/</code> folder in your project — never uploaded anywhere.
+              </p>
+              <ul style={{marginTop: '12px', lineHeight: 2}}>
+                <li><strong>Code analysis</strong> — processed locally, results saved to <code>.ccg/</code></li>
+                <li><strong>RAG embeddings</strong> — local TF-IDF by default (no external API)</li>
+                <li><strong>License verification</strong> — only your license key is sent (not your code)</li>
+                <li><strong>No telemetry</strong> — zero analytics, zero tracking</li>
+              </ul>
+              <p style={{marginTop: '16px', opacity: 0.8}}>
+                Even with a Team license, we only verify your license key. Your source code
+                never leaves your machine.
+              </p>
+            </div>
+
+            <div className="feature-card" style={{textAlign: 'left'}}>
+              <h3>What data does CCG store?</h3>
+              <p style={{lineHeight: 1.8}}>
+                Everything is stored locally in <code>.ccg/</code>:
+              </p>
+              <ul style={{marginTop: '12px', lineHeight: 2}}>
+                <li><code>memory.db</code> — decisions, patterns, notes</li>
+                <li><code>tasks/*.json</code> — workflow tracking</li>
+                <li><code>checkpoints/</code> — git-like restore points</li>
+                <li><code>registry/</code> — document index</li>
+              </ul>
+              <p style={{marginTop: '16px', opacity: 0.8}}>
+                Add <code>.ccg/</code> to <code>.gitignore</code> to keep this data private
+                (we do this automatically on <code>ccg init</code>).
               </p>
             </div>
           </div>

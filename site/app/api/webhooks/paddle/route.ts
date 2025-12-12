@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     const paddleVendorId = process.env.PADDLE_VENDOR_ID;
-    const paddlePublicKey = process.env.PADDLE_PUBLIC_KEY;
+    const _paddlePublicKey = process.env.PADDLE_PUBLIC_KEY;
 
     if (!paddleVendorId) {
       return NextResponse.json(

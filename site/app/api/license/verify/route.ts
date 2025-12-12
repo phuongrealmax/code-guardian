@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { licenseKey, email, machineId } = body;
+    const { licenseKey, email: _email, machineId: _machineId } = body;
 
     if (!licenseKey) {
       return NextResponse.json(
