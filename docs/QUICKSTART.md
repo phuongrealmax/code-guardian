@@ -207,7 +207,7 @@ Yes! Edit `.ccg/config.json` after initialization. See [User Guide](USER_GUIDE.m
 ### Does it work offline?
 Yes! **Dev tier** runs entirely locally with no cloud dependencies.
 
-Team/Enterprise licenses cache validation for 24 hours, so you can work offline after initial verification. See [License System](LICENSE_SYSTEM.md) for details.
+Team/Enterprise licenses cache validation for 24 hours, so you can work offline after initial verification.
 
 ### What languages are supported?
 - JavaScript/TypeScript (best support)

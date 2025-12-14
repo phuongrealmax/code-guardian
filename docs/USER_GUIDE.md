@@ -175,7 +175,6 @@ setLicenseGateway(new MyCustomGateway());
 **Note**: Custom backends are **not officially supported**. The reference implementation
 in `src/modules/license/` is provided for educational purposes only.
 
-See [LICENSE_SYSTEM.md](./LICENSE_SYSTEM.md) for architecture details.
 
 ---
 
