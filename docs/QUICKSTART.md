@@ -50,9 +50,10 @@ When you run `ccg quickstart`, here's what happens behind the scenes:
 - Suggests optimization goals (refactor, simplify, add tests, etc.)
 
 ### 5. Report Generation (~5 seconds)
-- Creates a markdown report in `docs/reports/`
+- Creates a local markdown report in `docs/reports/` (gitignored by default)
 - Includes overview, hotspots table, and recommendations
 - Report is human-readable, not JSON
+- Reports are local to your machine and not committed to git
 
 **Total time:** ~2 minutes for most projects (30k LOC or less)
 
@@ -198,7 +199,7 @@ To upgrade: `ccg activate` or visit [codeguardian.studio/pricing](https://codegu
 
 ### Where is my data stored?
 - Configuration: `.ccg/config.json`
-- Reports: `docs/reports/` (markdown files)
+- Reports: `docs/reports/` (local, gitignored by default)
 - Analysis cache: `.ccg/optimizer-cache.json` (optional)
 
 ### Can I customize the analysis?

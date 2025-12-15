@@ -191,7 +191,7 @@ Check the "Code Guardian" output channel for detailed error messages. Common iss
 ### Reports Not Opening
 
 1. Ensure `codeguardian.autoOpenReport` is `true`
-2. Check that `docs/reports/` directory exists after optimization
+2. Check that `docs/reports/` directory exists after optimization (this directory is gitignored by default)
 3. Try running `Code Guardian: Open Latest Report` manually
 
 ## Development

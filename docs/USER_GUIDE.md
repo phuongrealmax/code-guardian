@@ -528,7 +528,7 @@ ccg report --repo core --trend
 ccg report --repo payments --trend
 ```
 
-Reports are saved with the repo name in the filename:
+Reports are saved locally with the repo name in the filename (gitignored by default):
 ```
 docs/reports/optimization-2024-01-15-core-abc123.md
 docs/reports/optimization-2024-01-15-payments-def456.md
@@ -840,7 +840,7 @@ See the dedicated [Claude Code Integration Guide](CLAUDE_CODE_SETUP.md).
 
 ### Report Structure
 
-Generated reports (`docs/reports/optimization-*.md`) include:
+Generated reports are saved locally in `docs/reports/optimization-*.md` (gitignored by default). Reports include:
 
 #### 1. Overview
 ```
@@ -1216,7 +1216,7 @@ When you run `ccg quickstart`, here's what happens:
 1. **CLI parses your command** → determines you want quickstart
 2. **CLI calls MCP tools internally** → `code_scan_repository`, `code_metrics`, `code_hotspots`
 3. **Results are formatted** → from JSON to human-readable markdown
-4. **Report is saved** → in `docs/reports/`
+4. **Report is saved** → locally in `docs/reports/` (gitignored)
 
 ### Latent Chain Mode
 

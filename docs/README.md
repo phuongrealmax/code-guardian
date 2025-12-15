@@ -29,7 +29,7 @@ Advanced guide for Latent Chain Mode:
 
 ```bash
 # Install globally
-npm install -g @anthropic-community/claude-code-guardian
+npm install -g codeguardian-studio
 
 # Initialize in your project
 ccg init
@@ -41,8 +41,8 @@ ccg code-optimize --report
 ## 🔗 Links
 
 - **Website**: [codeguardian.studio](https://codeguardian.studio)
-- **GitHub**: [claude-code-guardian](https://github.com/phuongrealmax/claude-code-guardian)
-- **npm**: [@anthropic-community/claude-code-guardian](https://www.npmjs.com/package/@anthropic-community/claude-code-guardian)
+- **GitHub**: [claude-code-guardian](https://github.com/phuongrealmax/claude-code-guardian/tree/public/open-core-release)
+- **npm**: [codeguardian-studio](https://www.npmjs.com/package/codeguardian-studio)
 
 ## 💬 Support
 
