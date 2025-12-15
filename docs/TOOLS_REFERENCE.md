@@ -11,6 +11,7 @@ For detailed usage, see the individual guide documents linked below.
 
 ## Table of Contents
 
+- [CCG Entrypoint](#ccg-entrypoint)
 - [Agent Tools](#agent-tools)
 - [AutoAgent Tools](#autoagent-tools)
 - [Code Optimizer Tools](#code-optimizer-tools)
@@ -27,6 +28,51 @@ For detailed usage, see the individual guide documents linked below.
 - [Testing Tools](#testing-tools)
 - [Thinking Tools](#thinking-tools)
 - [Workflow Tools](#workflow-tools)
+
+## CCG Entrypoint
+
+> Single entrypoint for natural language CCG commands
+
+| Tool | Description |
+|------|-------------|
+| `ccg_run` | Translate natural language prompts to tool sequences and execute them |
+
+### ccg_run
+
+**Purpose:** Single entrypoint for natural language CCG commands. Use `/ccg "<prompt>"` to invoke.
+
+**Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `prompt` | string | Yes | Natural language command (e.g., "analyze code", "run tests") |
+| `dryRun` | boolean | No | If true, translate but do not execute. Returns nextToolCalls. Default: false |
+| `persistReport` | boolean | No | Persist report JSON even on error. Default: true |
+| `translationMode` | enum | No | `auto`, `pattern`, `claude`, `tiny`. Default: auto |
+| `reportDir` | string | No | Custom directory for report output |
+
+**Response Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `taskId` | string | Unique task identifier |
+| `taskStatus` | enum | `completed`, `pending`, `blocked`, `failed` |
+| `supported` | boolean | Whether the prompt matched a known pattern |
+| `reason` | string | `NO_MATCHING_PATTERN` if unsupported |
+| `confidence` | number | Confidence score (0-1) |
+| `translationSource` | enum | `pattern`, `claude`, `tiny` |
+| `validation` | object | Validation checks results |
+| `execution` | object | Execution metrics (stepsTotal, stepsCompleted, stepsFailed) |
+| `nextToolCalls` | array | Tool calls to execute (for dryRun or pending status) |
+| `fallbackGuidance` | object | Guidance when prompt doesn't match (examples, suggestions) |
+| `reportPath` | string | Path to persisted JSON report |
+
+**Example Prompts:**
+- `/ccg "analyze code"` → runs `code_quick_analysis`
+- `/ccg "run tests"` → runs `testing_run`
+- `/ccg "check memory"` → runs `memory_summary`
+- `/ccg "validate code"` → runs `guard_validate`
+- `/ccg "scan repo"` → runs `code_scan_repository` + `code_hotspots`
+
+---
 
 ## Agent Tools
 
