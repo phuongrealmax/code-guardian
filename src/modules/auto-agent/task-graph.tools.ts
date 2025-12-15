@@ -11,9 +11,12 @@ import {
   WorkflowGraph,
   WorkflowNode,
   WorkflowEdge,
+  WorkflowNodeState,
 } from './task-graph.js';
 import { TASK_TEMPLATES } from './task-graph-templates.js';
 import { WorkflowExecutor, TaskRunner } from './workflow-executor.js';
+import { exportWorkflowMermaid, MermaidExportOptions } from './workflow-visualizer.js';
+import { listTemplates, getTemplate, WorkflowTemplateInput } from './templates/index.js';
 
 /**
  * Create TaskGraph MCP tools
@@ -656,6 +659,194 @@ Returns execution summary with node states and any blocked nodes.`,
         }
       },
     },
+
+    // ═══════════════════════════════════════════════════════════════
+    //          Sprint 8: Workflow Visualization (Mermaid)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Export a WorkflowGraph to Mermaid diagram format
+     */
+    auto_workflow_mermaid: {
+      description: `Export a WorkflowGraph to Mermaid diagram format for visualization.
+
+Features:
+- Status icons when nodeStates provided (✅ done, ▶ running, ⛔ blocked, ❌ failed, ⏭ skipped, ⏳ pending)
+- Decision edges with condition labels
+- Distinct shapes: task=[rect], decision={diamond}, join=([stadium])
+- Gate and phase badges
+- Deterministic output (sorted by node ID)
+
+Renders well in Markdown, GitHub, documentation tools.`,
+      parameters: z.object({
+        graph: z.object({
+          version: z.string().default('1.0'),
+          entry: z.string(),
+          nodes: z.array(z.object({
+            id: z.string(),
+            kind: z.enum(['task', 'decision', 'join']),
+            label: z.string().optional(),
+            payload: z.record(z.string(), z.unknown()).optional(),
+            phase: z.enum(['analysis', 'plan', 'impl', 'review', 'test']).optional(),
+            gateRequired: z.boolean().optional(),
+            gatePolicy: z.object({
+              requireGuard: z.boolean().optional(),
+              requireTest: z.boolean().optional(),
+              maxAgeMs: z.number().optional(),
+            }).optional(),
+          })),
+          edges: z.array(z.object({
+            from: z.string(),
+            to: z.string(),
+            condition: z.object({
+              type: z.enum(['equals', 'exists', 'truthy']),
+              path: z.string(),
+              value: z.unknown().optional(),
+            }).optional(),
+          })),
+          defaults: z.object({
+            gateRequired: z.boolean().optional(),
+            gatePolicy: z.object({
+              requireGuard: z.boolean().optional(),
+              requireTest: z.boolean().optional(),
+              maxAgeMs: z.number().optional(),
+            }).optional(),
+          }).optional(),
+        }).describe('Workflow graph to visualize'),
+        nodeStates: z.record(z.string(), z.enum(['pending', 'running', 'blocked', 'skipped', 'failed', 'done'])).optional()
+          .describe('Optional node states for status icons'),
+        direction: z.enum(['TD', 'LR']).optional().describe('Flow direction: TD (top-down) or LR (left-right)'),
+        title: z.string().optional().describe('Diagram title'),
+        showGateBadges: z.boolean().optional().describe('Show gate requirement badges (default: true)'),
+        showPhaseBadges: z.boolean().optional().describe('Show phase badges (default: true)'),
+      }),
+      handler: async (params: {
+        graph: WorkflowGraph;
+        nodeStates?: Record<string, WorkflowNodeState>;
+        direction?: 'TD' | 'LR';
+        title?: string;
+        showGateBadges?: boolean;
+        showPhaseBadges?: boolean;
+      }) => {
+        try {
+          const mermaid = exportWorkflowMermaid(params.graph, {
+            nodeStates: params.nodeStates,
+            direction: params.direction,
+            title: params.title,
+            showGateBadges: params.showGateBadges,
+            showPhaseBadges: params.showPhaseBadges,
+          });
+
+          return {
+            success: true,
+            mermaid,
+            nodeCount: params.graph.nodes.length,
+            edgeCount: params.graph.edges.length,
+          };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return {
+            success: false,
+            error: message,
+          };
+        }
+      },
+    },
+
+    // ═══════════════════════════════════════════════════════════════
+    //          Sprint 8: Workflow Templates
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * List available workflow templates
+     */
+    auto_workflow_template_list: {
+      description: `List all available workflow templates.
+
+Templates provide pre-built WorkflowGraphs for common development tasks:
+- feature-dev: Full feature development workflow
+- bug-fix: Bug investigation and fix workflow
+- code-review: Code review workflow
+- refactor-module: Module refactoring workflow
+- release-smoke: Release smoke testing workflow
+
+Each template includes appropriate phases and gate requirements.`,
+      parameters: z.object({}),
+      handler: async () => {
+        const templates = listTemplates();
+        return {
+          success: true,
+          templates: templates.map(t => ({
+            name: t.name,
+            description: t.description,
+            phases: t.phases,
+            nodeCount: t.nodeCount,
+          })),
+          count: templates.length,
+        };
+      },
+    },
+
+    /**
+     * Get a workflow graph from a template
+     */
+    auto_workflow_template_get: {
+      description: `Get a workflow graph from a template.
+
+Templates generate WorkflowGraphs with:
+- Appropriate phases (analysis, plan, impl, test, review)
+- Gate requirements for impl/test/review phases
+- Decision branching where appropriate
+- Join nodes for parallel branches
+
+Use the returned graph with auto_workflow_execute to run it.`,
+      parameters: z.object({
+        name: z.enum(['feature-dev', 'bug-fix', 'code-review', 'refactor-module', 'release-smoke'])
+          .describe('Template name'),
+        input: z.object({
+          taskIdPrefix: z.string().optional().describe('Prefix for generated node IDs'),
+          targetPaths: z.array(z.string()).optional().describe('Target file/directory paths'),
+          taskName: z.string().optional().describe('Name for the task'),
+          description: z.string().optional().describe('Task description'),
+        }).optional().describe('Template input parameters'),
+      }),
+      handler: async (params: {
+        name: string;
+        input?: WorkflowTemplateInput;
+      }) => {
+        try {
+          const graph = getTemplate(params.name, params.input);
+
+          if (!graph) {
+            return {
+              success: false,
+              error: `Template '${params.name}' not found`,
+            };
+          }
+
+          return {
+            success: true,
+            template: params.name,
+            graph,
+            nodeCount: graph.nodes.length,
+            edgeCount: graph.edges.length,
+            hasDecision: graph.nodes.some(n => n.kind === 'decision'),
+            hasJoin: graph.nodes.some(n => n.kind === 'join'),
+            gatedNodes: graph.nodes.filter(n => {
+              if (n.gateRequired !== undefined) return n.gateRequired;
+              const gatedPhases = ['impl', 'test', 'review'];
+              return n.phase && gatedPhases.includes(n.phase);
+            }).length,
+          };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return {
+            success: false,
+            error: message,
+          };
+        }
+      },
+    },
   };
 }
 
@@ -664,6 +855,10 @@ export const TASK_GRAPH_TOOL_DEFINITIONS = [
   { name: 'auto_workflow_start', description: 'Start a gated workflow from template (feature/bugfix/refactor/review)' },
   // Sprint 7: DAG Workflow Executor
   { name: 'auto_workflow_execute', description: 'Execute a DAG workflow graph with parallelism, branching, and gates' },
+  // Sprint 8: Visualization + Templates
+  { name: 'auto_workflow_mermaid', description: 'Export workflow graph to Mermaid diagram format' },
+  { name: 'auto_workflow_template_list', description: 'List available workflow templates' },
+  { name: 'auto_workflow_template_get', description: 'Get a workflow graph from a template' },
   // Graph management
   { name: 'auto_create_graph', description: 'Create a DAG-based task graph (low-level)' },
   { name: 'auto_get_next_nodes', description: 'Get next executable nodes' },

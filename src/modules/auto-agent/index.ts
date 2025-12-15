@@ -50,6 +50,11 @@ export {
 } from './task-graph.js';
 export { WorkflowExecutor } from './workflow-executor.js';
 
+// Sprint 8: Workflow Visualization + Templates
+export { exportWorkflowMermaid, MermaidExportOptions, getStatusIcon, isValidMermaidSyntax } from './workflow-visualizer.js';
+export { listTemplates, getTemplate, hasTemplate, getTemplateNames } from './templates/index.js';
+export type { WorkflowTemplateInfo, WorkflowTemplateInput } from './templates/index.js';
+
 // Default configuration
 export const DEFAULT_AUTO_AGENT_CONFIG: AutoAgentModuleConfig = {
   enabled: true,
