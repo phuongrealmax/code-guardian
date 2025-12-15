@@ -22,6 +22,8 @@ import { AutoAgentModule } from './modules/auto-agent/index.js';
 import { RAGModule } from './modules/rag/index.js';
 import { CodeOptimizerService, createCodeOptimizerToolHandlers } from './modules/code-optimizer/index.js';
 import { SessionModule, getSessionToolDefinitions } from './modules/session/index.js';
+import { ProgressService } from './core/progress.service.js';
+import { PROGRESS_TOOL_DEFINITIONS, handleProgressTool, ProgressToolDeps } from './core/progress.tools.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      TYPE DEFINITIONS
@@ -79,6 +81,17 @@ let codeOptimizerHandlers: ReturnType<typeof createCodeOptimizerToolHandlers> | 
 
 export function setCodeOptimizerHandlers(handlers: ReturnType<typeof createCodeOptimizerToolHandlers>): void {
   codeOptimizerHandlers = handlers;
+}
+
+// Progress service + deps cache
+let progressToolDeps: ProgressToolDeps | null = null;
+
+export function setProgressToolDeps(deps: ProgressToolDeps): void {
+  progressToolDeps = deps;
+}
+
+export function getProgressToolDefinitions() {
+  return PROGRESS_TOOL_DEFINITIONS;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -174,6 +187,9 @@ export async function routeToolCall(
 
     case 'code':
       return handleCodeOptimizerTool(name, args);
+
+    case 'progress':
+      return handleProgressToolCall(name, args);
 
     default:
       throw new Error(`Unknown module: ${moduleName}`);
@@ -469,4 +485,19 @@ async function handleCodeOptimizerTool(
   }
 
   throw new Error(`Unknown Code Optimizer tool: ${toolName}`);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                      PROGRESS TOOL HANDLER
+// ═══════════════════════════════════════════════════════════════
+
+async function handleProgressToolCall(
+  toolName: string,
+  args: Record<string, unknown>
+): Promise<unknown> {
+  if (!progressToolDeps) {
+    throw new Error('Progress service not initialized');
+  }
+
+  return handleProgressTool(toolName, args, progressToolDeps);
 }

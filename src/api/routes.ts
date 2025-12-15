@@ -21,6 +21,7 @@ import {
   setupDocumentsRoutes,
   setupProcessRoutes,
 } from './routes-other.js';
+import { setupProgressRoutes, ProgressRoutesDeps } from './routes-progress.js';
 
 // WebSocket clients (shared with main server)
 let wsClients: Set<WebSocket>;
@@ -47,7 +48,8 @@ function broadcast(event: string, data: unknown) {
 export function setupRoutes(
   app: Express,
   modules: CCGModulesForAPI,
-  stateManager: StateManager
+  stateManager: StateManager,
+  progressDeps?: ProgressRoutesDeps
 ): void {
   setupStatusRoute(app, modules, stateManager);
   setupMemoryRoutes(app, modules, broadcast);
@@ -58,6 +60,11 @@ export function setupRoutes(
   setupLatentRoutes(app, modules);
   setupDocumentsRoutes(app, modules, broadcast);
   setupProcessRoutes(app, modules, broadcast);
+
+  // Progress routes (Sprint 9)
+  if (progressDeps) {
+    setupProgressRoutes(app, progressDeps, broadcast);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════

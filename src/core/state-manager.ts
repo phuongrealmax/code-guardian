@@ -6,10 +6,35 @@ import { randomUUID } from 'crypto';
 import { Logger } from './logger.js';
 import { EventBus } from './event-bus.js';
 import type { GuardEvidence, TestEvidence, EvidenceState } from './completion-gates.js';
+import type { WorkflowNodeState } from '../modules/auto-agent/task-graph.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      STATE TYPES
 // ═══════════════════════════════════════════════════════════════
+
+// Progress State (Sprint 9)
+export interface ProgressState {
+  /** Active workflow being executed */
+  activeWorkflowId?: string;
+  /** Graph identifier or hash */
+  activeGraphId?: string;
+  /** Node execution states */
+  nodeStates: Record<string, WorkflowNodeState>;
+  /** Last blocked node info */
+  lastBlocked?: LastBlockedInfo;
+  /** Last update timestamp */
+  lastUpdatedAt: Date;
+}
+
+export interface LastBlockedInfo {
+  nodeId: string;
+  reason: string;
+  missingEvidence?: string[];
+  failingEvidence?: string[];
+  nextToolCalls?: string[];
+}
+
+const MAX_NODE_STATES = 500;
 
 export interface Session {
   id: string;
@@ -22,6 +47,7 @@ export interface Session {
   metadata: Record<string, unknown>;
   timeline?: SessionEvent[];
   evidence?: EvidenceState;
+  progress?: ProgressState;
 }
 
 export interface SessionEvent {
@@ -438,6 +464,115 @@ export class StateManager {
       hasGuard: evidence?.lastGuardRun?.taskId === taskId && evidence.lastGuardRun.status === 'passed',
       hasTest: evidence?.lastTestRun?.taskId === taskId && evidence.lastTestRun.status === 'passed',
     };
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      PROGRESS STATE (Sprint 9)
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Get current progress state
+   */
+  getProgress(): ProgressState {
+    if (!this.state.session?.progress) {
+      return {
+        nodeStates: {},
+        lastUpdatedAt: new Date(),
+      };
+    }
+    return { ...this.state.session.progress };
+  }
+
+  /**
+   * Set progress state (partial update)
+   */
+  setProgress(partial: Partial<ProgressState>): void {
+    if (this.state.session) {
+      if (!this.state.session.progress) {
+        this.state.session.progress = {
+          nodeStates: {},
+          lastUpdatedAt: new Date(),
+        };
+      }
+
+      this.state.session.progress = {
+        ...this.state.session.progress,
+        ...partial,
+        lastUpdatedAt: new Date(),
+      };
+
+      // Cap nodeStates to MAX_NODE_STATES
+      const nodeStateEntries = Object.entries(this.state.session.progress.nodeStates);
+      if (nodeStateEntries.length > MAX_NODE_STATES) {
+        // Keep the most recent entries
+        this.state.session.progress.nodeStates = Object.fromEntries(
+          nodeStateEntries.slice(-MAX_NODE_STATES)
+        );
+      }
+
+      this.save();
+      this.logger.debug('Progress state updated');
+    }
+  }
+
+  /**
+   * Clear progress state (for new workflow)
+   */
+  clearProgress(): void {
+    if (this.state.session) {
+      this.state.session.progress = {
+        nodeStates: {},
+        lastUpdatedAt: new Date(),
+      };
+      this.save();
+      this.logger.debug('Progress state cleared');
+    }
+  }
+
+  /**
+   * Set a single node's state
+   */
+  setNodeState(nodeId: string, state: WorkflowNodeState): void {
+    if (this.state.session) {
+      if (!this.state.session.progress) {
+        this.state.session.progress = {
+          nodeStates: {},
+          lastUpdatedAt: new Date(),
+        };
+      }
+
+      this.state.session.progress.nodeStates[nodeId] = state;
+      this.state.session.progress.lastUpdatedAt = new Date();
+
+      // Cap nodeStates
+      const nodeStateEntries = Object.entries(this.state.session.progress.nodeStates);
+      if (nodeStateEntries.length > MAX_NODE_STATES) {
+        this.state.session.progress.nodeStates = Object.fromEntries(
+          nodeStateEntries.slice(-MAX_NODE_STATES)
+        );
+      }
+
+      // Don't save on every node update (too frequent) - auto-save handles it
+    }
+  }
+
+  /**
+   * Set last blocked info
+   */
+  setLastBlocked(blockedInfo: LastBlockedInfo | undefined): void {
+    if (this.state.session) {
+      if (!this.state.session.progress) {
+        this.state.session.progress = {
+          nodeStates: {},
+          lastUpdatedAt: new Date(),
+        };
+      }
+
+      this.state.session.progress.lastBlocked = blockedInfo;
+      this.state.session.progress.lastUpdatedAt = new Date();
+      this.save();
+      this.logger.debug('Last blocked info updated', { nodeId: blockedInfo?.nodeId });
+    }
   }
 
   // ═══════════════════════════════════════════════════════════════

@@ -151,6 +151,8 @@ export function createAPIServer(
   eventBus.on('session:saved', (data) => broadcast('session:saved', data));
   eventBus.on('session:resumed', (data) => broadcast('session:resumed', data));
   eventBus.on('session:event', (data) => broadcast('session:event', data));
+  // Progress events (Sprint 9)
+  eventBus.on('progress:updated', (data) => broadcast('progress:updated', data));
 
   // Start function
   const start = () => {

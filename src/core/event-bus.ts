@@ -88,6 +88,8 @@ export type CCGEventType =
   | 'taskgraph:node:bypass_gates' // Audit: node completed with gates bypassed
   | 'taskgraph:completed'
   | 'taskgraph:workflow:completed' // Workflow execution finished (Sprint 7)
+  // Progress events (Sprint 9)
+  | 'progress:updated' // Progress snapshot updated (metadata-only)
   // RAG events
   | 'rag:index:started'
   | 'rag:index:progress'
