@@ -19,6 +19,30 @@ Complete guide to using Code Guardian Studio for code analysis and refactoring.
 
 ---
 
+## What's New
+
+Recent updates to Code Guardian Studio:
+
+### Session Resume (v1.4)
+Resume work after browser refresh or disconnect. See [Session Resume Guide](SESSION_RESUME.md).
+
+### Auto-Checkpoints & Diff (v1.4)
+Automatic checkpoints before risky operations with on-demand diff comparison. See [Auto-Checkpoints Guide](AUTO_CHECKPOINTS_AND_DIFF.md).
+
+### Completion Gates (v1.4)
+Tasks require evidence (test pass, guard validation) before completion. See [Completion Gates Guide](COMPLETION_GATES.md).
+
+### Testing Observability (v1.4)
+Prioritized failure output (console > network > trace > screenshot). See [Testing Observability Guide](TESTING_OBSERVABILITY.md).
+
+### Guard Rulesets (v1.4)
+Predefined rule collections: `frontend`, `backend`, `security`, `testing`. See [Guard Rulesets Guide](GUARD_RULESETS.md).
+
+### TaskGraph Workflows (v1.4)
+DAG-based task orchestration with gated completion. See [TaskGraph Workflows Guide](TASKGRAPH_WORKFLOWS.md).
+
+---
+
 ## Getting Started
 
 ### New Users: 3-Minute Quickstart
@@ -1552,7 +1576,46 @@ All-in-one: scan + metrics + hotspots.
 - `latent_apply_patch` - Apply code changes
 - `latent_complete_task` - Finish task
 
-For complete tool schemas and examples, see the [original Vietnamese guide](USER_GUIDE.md.bak) or use Claude Code's MCP tool discovery.
+### Session Tools
+
+- `session_init` - Initialize new session
+- `session_status` - Get session state
+- `session_save` - Save session manually
+- `session_resume` - Resume from previous session
+- `session_offer` - Check for resumable session
+- `session_timeline` - View session events
+- `session_replay` - Replay timeline for debugging
+- `session_export` - Export session to file
+- `session_end` - End and save session
+
+### Checkpoint Tools
+
+- `resource_checkpoint_create` - Create checkpoint
+- `resource_checkpoint_list` - List all checkpoints
+- `resource_checkpoint_restore` - Restore to checkpoint
+- `resource_checkpoint_delete` - Delete checkpoint
+- `resource_checkpoint_diff` - Compare two checkpoints
+- `resource_governor_state` - Get token budget state
+- `resource_action_allowed` - Check if action is allowed
+
+### Testing Tools
+
+- `testing_run` - Run tests
+- `testing_run_affected` - Run tests for changed files
+- `testing_browser_open` - Open browser session
+- `testing_browser_analysis` - Get prioritized failure analysis
+- `testing_browser_screenshot` - Capture screenshot
+- `testing_browser_logs` - Get console logs
+- `testing_browser_network` - Get network requests
+- `testing_browser_errors` - Get JavaScript errors
+- `testing_browser_close` - Close browser session
+
+### TaskGraph Tools
+
+- `auto_workflow_start` - Start workflow from description
+- `auto_decompose_task` - Decompose complex task into DAG
+
+For complete tool schemas, see individual guide documents or use Claude Code's MCP tool discovery.
 
 ---
 
@@ -1560,9 +1623,11 @@ For complete tool schemas and examples, see the [original Vietnamese guide](USER
 
 - **Quickstart issues?** See [QUICKSTART.md](QUICKSTART.md)
 - **Advanced features?** See [LATENT_CHAIN_GUIDE.md](LATENT_CHAIN_GUIDE.md)
+- **Session recovery?** See [SESSION_RESUME.md](SESSION_RESUME.md)
+- **Gate requirements?** See [COMPLETION_GATES.md](COMPLETION_GATES.md)
 - **GitHub Issues:** https://github.com/phuongrealmax/claude-code-guardian/issues
 - **Website:** https://codeguardian.studio
 
 ---
 
-**Last updated:** 2025-12-12
+**Last updated:** 2025-12-15

@@ -245,6 +245,20 @@ Use Claude Code for interactive analysis:
 
 ---
 
+## Refresh/Restart Resume Playbook
+
+If your browser refreshes or Claude Code restarts mid-task:
+
+1. **Check for resume offer**: Call `session_offer` to see if a previous session is available
+2. **Resume session**: Call `session_resume` (or `session_resume { sessionFile: "..." }` for specific file)
+3. **Review what was done**: Call `session_timeline` to see completed events
+4. **Check blocked tasks**: Look for `nextToolCalls` in any blocked task responses
+5. **Continue from nextToolCalls**: Execute suggested tools to unblock and complete tasks
+
+See [Session Resume Guide](SESSION_RESUME.md) for detailed recovery workflows.
+
+---
+
 ## Troubleshooting
 
 ### MCP Connection Issues

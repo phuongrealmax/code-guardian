@@ -2,32 +2,43 @@
 
 Welcome to the official documentation for Code Guardian Studio (CCG) - an AI-powered code refactor engine built on Claude Code and MCP.
 
-## 📚 Documentation
+## Documentation
 
-### [User Guide](./USER_GUIDE.md)
-Complete guide for getting started with CCG, including:
-- Installation and setup
-- Basic usage and commands
-- MCP tools reference
-- Best practices
+### Getting Started
 
-### [Flow and Use Cases](./FLOW_AND_USE_CASES.md)
-Comprehensive overview of CCG's architecture:
-- 12 modules overview
-- 11 specialized agents
-- Real-world use cases
-- Integration patterns
+| Guide | Description |
+|-------|-------------|
+| [Quickstart](./QUICKSTART.md) | 3-minute setup and first analysis |
+| [User Guide](./USER_GUIDE.md) | Complete reference for CLI and features |
+| [Claude Code Setup](./CLAUDE_CODE_SETUP.md) | MCP integration with Claude Code |
 
-### [Latent Chain Guide](./LATENT_CHAIN_GUIDE.md)
-Advanced guide for Latent Chain Mode:
-- What is Latent Chain Mode
-- How to use delta updates
-- Phase transitions
-- Best practices for complex tasks
+### Core Features
 
-## 🚀 Quick Start
+| Guide | Description |
+|-------|-------------|
+| [Session Resume](./SESSION_RESUME.md) | Resume work after disconnect/refresh |
+| [Completion Gates](./COMPLETION_GATES.md) | Task completion requirements and evidence |
+| [Auto-Checkpoints](./AUTO_CHECKPOINTS_AND_DIFF.md) | Automatic checkpoints and diff comparison |
 
-```bash
+### Advanced Features
+
+| Guide | Description |
+|-------|-------------|
+| [Latent Chain Guide](./LATENT_CHAIN_GUIDE.md) | Multi-phase reasoning with delta updates |
+| [TaskGraph Workflows](./TASKGRAPH_WORKFLOWS.md) | DAG-based task orchestration |
+| [Guard Rulesets](./GUARD_RULESETS.md) | Predefined validation rule collections |
+| [Testing Observability](./TESTING_OBSERVABILITY.md) | Prioritized failure output and health scores |
+
+### Reference
+
+| Guide | Description |
+|-------|-------------|
+| [Flow and Use Cases](./FLOW_AND_USE_CASES.md) | Architecture overview and use cases |
+| [VS Code Extension](./VS_CODE_EXTENSION.md) | VS Code integration guide |
+
+## Quick Start
+
+\`\`\`bash
 # Install globally
 npm install -g codeguardian-studio
 
@@ -36,24 +47,24 @@ ccg init
 
 # Analyze your codebase
 ccg code-optimize --report
-```
+\`\`\`
 
-## 🔗 Links
+## Links
 
 - **Website**: [codeguardian.studio](https://codeguardian.studio)
 - **GitHub**: [claude-code-guardian](https://github.com/phuongrealmax/claude-code-guardian/tree/public/open-core-release)
 - **npm**: [codeguardian-studio](https://www.npmjs.com/package/codeguardian-studio)
 
-## 💬 Support
+## Support
 
 - **Issues**: [GitHub Issues](https://github.com/phuongrealmax/claude-code-guardian/issues)
 - **Email**: hello@codeguardian.studio
 - **Twitter**: [@codeguardianstudio](https://twitter.com/codeguardianstudio)
 
-## 📄 License
+## License
 
 MIT License - See [LICENSE](../LICENSE) for details.
 
 ---
 
-Built with ❤️ by developers, for developers.
+Built with care by developers, for developers.

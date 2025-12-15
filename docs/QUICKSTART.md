@@ -267,10 +267,25 @@ ccg doctor --fix
 
 ---
 
+## After Refresh or Reconnect
+
+If your browser refreshes or you get disconnected:
+
+1. **Check for resume offer** - CCG will offer to restore your session
+2. **Resume if available** - Restores tasks, progress, and context
+3. **Check nextToolCalls** - If tasks were blocked, see suggested next actions
+4. **Continue where you left off** - All timeline events are preserved
+
+See [Session Resume](SESSION_RESUME.md) for details on recovery workflows.
+
+---
+
 ## Learn More
 
 - [User Guide](USER_GUIDE.md) - Complete documentation
 - [Latent Chain Guide](LATENT_CHAIN_GUIDE.md) - Advanced reasoning mode
+- [Session Resume](SESSION_RESUME.md) - Recovery after disconnects
+- [Completion Gates](COMPLETION_GATES.md) - Task completion requirements
 - [Code Guardian Website](https://codeguardian.studio) - Case studies and examples
 
 ---

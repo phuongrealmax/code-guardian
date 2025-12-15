@@ -708,6 +708,16 @@ Khi token gần threshold (70-85%):
 - Không include actions
 - Ưu tiên complete task nhanh
 
+### Works with Gates & Checkpoints
+
+Latent Chain Mode integrates with CCG's completion gates and checkpoints:
+
+- **Checkpoints**: Auto-created before risky impl phase changes. Use `resource_checkpoint_diff` to compare.
+- **Completion Gates**: The `impl` and `review` phases may require test/guard evidence before completion.
+- **nextToolCalls**: If gates block completion, check `nextToolCalls` for suggested actions.
+
+See [Auto-Checkpoints Guide](AUTO_CHECKPOINTS_AND_DIFF.md) and [Completion Gates Guide](COMPLETION_GATES.md) for details.
+
 ---
 
 ## Tham khảo
