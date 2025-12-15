@@ -13,17 +13,28 @@ import type { WorkflowNodeState } from '../modules/auto-agent/task-graph.js';
 // ═══════════════════════════════════════════════════════════════
 
 // Progress State (Sprint 9)
-export interface ProgressState {
-  /** Active workflow being executed */
-  activeWorkflowId?: string;
+// Single workflow progress
+export interface WorkflowProgress {
   /** Graph identifier or hash */
-  activeGraphId?: string;
+  graphId?: string;
   /** Node execution states */
   nodeStates: Record<string, WorkflowNodeState>;
   /** Last blocked node info */
   lastBlocked?: LastBlockedInfo;
   /** Last update timestamp */
   lastUpdatedAt: Date;
+  /** Last accessed timestamp for LRU */
+  lastAccessedAt: Date;
+}
+
+// Multi-workflow progress state (Sprint 10)
+export interface ProgressState {
+  /** Active workflow being executed */
+  activeWorkflowId?: string;
+  /** All tracked workflows (Map for LRU support) */
+  workflows: Record<string, WorkflowProgress>;
+  /** LRU order - most recent last */
+  lruOrder: string[];
 }
 
 export interface LastBlockedInfo {
@@ -35,6 +46,7 @@ export interface LastBlockedInfo {
 }
 
 const MAX_NODE_STATES = 500;
+const MAX_WORKFLOWS = 10; // LRU cap for multi-workflow support
 
 export interface Session {
   id: string;
@@ -467,112 +479,263 @@ export class StateManager {
   }
 
   // ═══════════════════════════════════════════════════════════════
-  //                      PROGRESS STATE (Sprint 9)
+  //                      PROGRESS STATE (Sprint 9 + Sprint 10 Multi-workflow)
   // ═══════════════════════════════════════════════════════════════
 
   /**
-   * Get current progress state
+   * Initialize empty progress state
    */
-  getProgress(): ProgressState {
+  private initProgressState(): ProgressState {
+    return {
+      activeWorkflowId: undefined,
+      workflows: {},
+      lruOrder: [],
+    };
+  }
+
+  /**
+   * Initialize empty workflow progress
+   */
+  private initWorkflowProgress(graphId?: string): WorkflowProgress {
+    const now = new Date();
+    return {
+      graphId,
+      nodeStates: {},
+      lastBlocked: undefined,
+      lastUpdatedAt: now,
+      lastAccessedAt: now,
+    };
+  }
+
+  /**
+   * Touch a workflow in LRU order (move to end = most recent)
+   */
+  private touchWorkflowLRU(workflowId: string): void {
+    if (!this.state.session?.progress) return;
+
+    const progress = this.state.session.progress;
+    const idx = progress.lruOrder.indexOf(workflowId);
+    if (idx > -1) {
+      progress.lruOrder.splice(idx, 1);
+    }
+    progress.lruOrder.push(workflowId);
+
+    // Update last accessed time
+    if (progress.workflows[workflowId]) {
+      progress.workflows[workflowId].lastAccessedAt = new Date();
+    }
+  }
+
+  /**
+   * Evict oldest workflow if over LRU cap
+   */
+  private evictOldestWorkflow(): void {
+    if (!this.state.session?.progress) return;
+
+    const progress = this.state.session.progress;
+    while (progress.lruOrder.length > MAX_WORKFLOWS) {
+      const oldestId = progress.lruOrder.shift();
+      if (oldestId) {
+        delete progress.workflows[oldestId];
+        this.logger.debug('Evicted oldest workflow from progress', { workflowId: oldestId });
+      }
+    }
+  }
+
+  /**
+   * Get current progress state (combined view of active workflow)
+   * Backward compatible: returns single-workflow-like structure
+   */
+  getProgress(): ProgressState & { activeGraphId?: string; nodeStates: Record<string, WorkflowNodeState>; lastBlocked?: LastBlockedInfo; lastUpdatedAt: Date } {
     if (!this.state.session?.progress) {
       return {
+        ...this.initProgressState(),
+        activeGraphId: undefined,
         nodeStates: {},
+        lastBlocked: undefined,
         lastUpdatedAt: new Date(),
       };
     }
-    return { ...this.state.session.progress };
+
+    const progress = this.state.session.progress;
+    const activeWorkflowId = progress.activeWorkflowId;
+    const activeWorkflow = activeWorkflowId ? progress.workflows[activeWorkflowId] : undefined;
+
+    // Return combined state for backward compatibility
+    return {
+      ...progress,
+      activeGraphId: activeWorkflow?.graphId,
+      nodeStates: activeWorkflow?.nodeStates ?? {},
+      lastBlocked: activeWorkflow?.lastBlocked,
+      lastUpdatedAt: activeWorkflow?.lastUpdatedAt ?? new Date(),
+    };
+  }
+
+  /**
+   * Get progress for a specific workflow
+   */
+  getWorkflowProgress(workflowId: string): WorkflowProgress | undefined {
+    if (!this.state.session?.progress) return undefined;
+
+    const workflow = this.state.session.progress.workflows[workflowId];
+    if (workflow) {
+      this.touchWorkflowLRU(workflowId);
+    }
+    return workflow;
+  }
+
+  /**
+   * List all tracked workflow IDs (in LRU order, oldest first)
+   */
+  listWorkflows(): string[] {
+    return [...(this.state.session?.progress?.lruOrder ?? [])];
   }
 
   /**
    * Set progress state (partial update)
+   * Sprint 10: Now workflow-aware
    */
-  setProgress(partial: Partial<ProgressState>): void {
-    if (this.state.session) {
-      if (!this.state.session.progress) {
-        this.state.session.progress = {
-          nodeStates: {},
-          lastUpdatedAt: new Date(),
-        };
+  setProgress(partial: Partial<ProgressState & { activeGraphId?: string; nodeStates?: Record<string, WorkflowNodeState> }>): void {
+    if (!this.state.session) return;
+
+    if (!this.state.session.progress) {
+      this.state.session.progress = this.initProgressState();
+    }
+
+    const progress = this.state.session.progress;
+
+    // Handle activeWorkflowId change
+    if (partial.activeWorkflowId !== undefined) {
+      progress.activeWorkflowId = partial.activeWorkflowId;
+
+      // Ensure workflow exists
+      if (partial.activeWorkflowId && !progress.workflows[partial.activeWorkflowId]) {
+        progress.workflows[partial.activeWorkflowId] = this.initWorkflowProgress(partial.activeGraphId);
       }
 
-      this.state.session.progress = {
-        ...this.state.session.progress,
-        ...partial,
-        lastUpdatedAt: new Date(),
-      };
+      if (partial.activeWorkflowId) {
+        this.touchWorkflowLRU(partial.activeWorkflowId);
+        this.evictOldestWorkflow();
+      }
+    }
 
-      // Cap nodeStates to MAX_NODE_STATES
-      const nodeStateEntries = Object.entries(this.state.session.progress.nodeStates);
+    // Update active workflow's nodeStates if provided
+    const activeId = progress.activeWorkflowId;
+    if (activeId && partial.nodeStates) {
+      if (!progress.workflows[activeId]) {
+        progress.workflows[activeId] = this.initWorkflowProgress();
+      }
+      progress.workflows[activeId].nodeStates = partial.nodeStates;
+      progress.workflows[activeId].lastUpdatedAt = new Date();
+    }
+
+    this.save();
+    this.logger.debug('Progress state updated', { activeWorkflowId: progress.activeWorkflowId });
+  }
+
+  /**
+   * Clear progress state (all workflows or specific)
+   */
+  clearProgress(workflowId?: string): void {
+    if (!this.state.session) return;
+
+    if (workflowId) {
+      // Clear specific workflow
+      if (this.state.session.progress?.workflows[workflowId]) {
+        delete this.state.session.progress.workflows[workflowId];
+        const idx = this.state.session.progress.lruOrder.indexOf(workflowId);
+        if (idx > -1) {
+          this.state.session.progress.lruOrder.splice(idx, 1);
+        }
+        if (this.state.session.progress.activeWorkflowId === workflowId) {
+          this.state.session.progress.activeWorkflowId = undefined;
+        }
+      }
+    } else {
+      // Clear all progress
+      this.state.session.progress = this.initProgressState();
+    }
+
+    this.save();
+    this.logger.debug('Progress state cleared', { workflowId: workflowId ?? 'all' });
+  }
+
+  /**
+   * Set a single node's state for the active workflow
+   */
+  setNodeState(nodeId: string, state: WorkflowNodeState, workflowId?: string): void {
+    if (!this.state.session) return;
+
+    if (!this.state.session.progress) {
+      this.state.session.progress = this.initProgressState();
+    }
+
+    const progress = this.state.session.progress;
+    const targetId = workflowId ?? progress.activeWorkflowId;
+
+    if (!targetId) {
+      // No workflow context - use a default
+      const defaultId = '__default__';
+      if (!progress.workflows[defaultId]) {
+        progress.workflows[defaultId] = this.initWorkflowProgress();
+      }
+      progress.workflows[defaultId].nodeStates[nodeId] = state;
+      progress.workflows[defaultId].lastUpdatedAt = new Date();
+      progress.activeWorkflowId = defaultId;
+      this.touchWorkflowLRU(defaultId);
+    } else {
+      if (!progress.workflows[targetId]) {
+        progress.workflows[targetId] = this.initWorkflowProgress();
+      }
+      progress.workflows[targetId].nodeStates[nodeId] = state;
+      progress.workflows[targetId].lastUpdatedAt = new Date();
+      this.touchWorkflowLRU(targetId);
+    }
+
+    // Cap nodeStates per workflow
+    const workflow = progress.workflows[workflowId ?? progress.activeWorkflowId ?? '__default__'];
+    if (workflow) {
+      const nodeStateEntries = Object.entries(workflow.nodeStates);
       if (nodeStateEntries.length > MAX_NODE_STATES) {
-        // Keep the most recent entries
-        this.state.session.progress.nodeStates = Object.fromEntries(
+        workflow.nodeStates = Object.fromEntries(
           nodeStateEntries.slice(-MAX_NODE_STATES)
         );
       }
-
-      this.save();
-      this.logger.debug('Progress state updated');
     }
+
+    this.evictOldestWorkflow();
+    // Don't save on every node update (too frequent) - auto-save handles it
   }
 
   /**
-   * Clear progress state (for new workflow)
+   * Set last blocked info for active workflow
    */
-  clearProgress(): void {
-    if (this.state.session) {
-      this.state.session.progress = {
-        nodeStates: {},
-        lastUpdatedAt: new Date(),
-      };
-      this.save();
-      this.logger.debug('Progress state cleared');
+  setLastBlocked(blockedInfo: LastBlockedInfo | undefined, workflowId?: string): void {
+    if (!this.state.session) return;
+
+    if (!this.state.session.progress) {
+      this.state.session.progress = this.initProgressState();
     }
-  }
 
-  /**
-   * Set a single node's state
-   */
-  setNodeState(nodeId: string, state: WorkflowNodeState): void {
-    if (this.state.session) {
-      if (!this.state.session.progress) {
-        this.state.session.progress = {
-          nodeStates: {},
-          lastUpdatedAt: new Date(),
-        };
+    const progress = this.state.session.progress;
+    const targetId = workflowId ?? progress.activeWorkflowId ?? '__default__';
+
+    if (!progress.workflows[targetId]) {
+      progress.workflows[targetId] = this.initWorkflowProgress();
+      if (!progress.activeWorkflowId) {
+        progress.activeWorkflowId = targetId;
       }
-
-      this.state.session.progress.nodeStates[nodeId] = state;
-      this.state.session.progress.lastUpdatedAt = new Date();
-
-      // Cap nodeStates
-      const nodeStateEntries = Object.entries(this.state.session.progress.nodeStates);
-      if (nodeStateEntries.length > MAX_NODE_STATES) {
-        this.state.session.progress.nodeStates = Object.fromEntries(
-          nodeStateEntries.slice(-MAX_NODE_STATES)
-        );
-      }
-
-      // Don't save on every node update (too frequent) - auto-save handles it
     }
-  }
 
-  /**
-   * Set last blocked info
-   */
-  setLastBlocked(blockedInfo: LastBlockedInfo | undefined): void {
-    if (this.state.session) {
-      if (!this.state.session.progress) {
-        this.state.session.progress = {
-          nodeStates: {},
-          lastUpdatedAt: new Date(),
-        };
-      }
+    progress.workflows[targetId].lastBlocked = blockedInfo;
+    progress.workflows[targetId].lastUpdatedAt = new Date();
+    this.touchWorkflowLRU(targetId);
 
-      this.state.session.progress.lastBlocked = blockedInfo;
-      this.state.session.progress.lastUpdatedAt = new Date();
-      this.save();
-      this.logger.debug('Last blocked info updated', { nodeId: blockedInfo?.nodeId });
-    }
+    this.save();
+    this.logger.debug('Last blocked info updated', {
+      workflowId: targetId,
+      nodeId: blockedInfo?.nodeId
+    });
   }
 
   // ═══════════════════════════════════════════════════════════════

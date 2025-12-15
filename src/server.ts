@@ -26,7 +26,10 @@ import {
   routeToolCall,
   getFullStatus,
   setCodeOptimizerHandlers,
+  setProgressToolDeps,
+  getProgressToolDefinitions,
 } from './server-handlers.js';
+import { ProgressService } from './core/progress.service.js';
 import {
   createModules,
   initializeModules,
@@ -83,6 +86,23 @@ export async function createCCGServer(options: CCGServerOptions = {}): Promise<S
 
   // Initialize all enabled modules
   await initializeModules(modules, config, logger);
+
+  // Create and attach ProgressService (Sprint 10: Production wiring)
+  const progressService = new ProgressService({
+    stateManager,
+    eventBus,
+    logger,
+  });
+  progressService.attach(); // Idempotent - safe to call multiple times
+
+  // Wire progress tool deps
+  setProgressToolDeps({
+    progressService,
+    stateManager,
+    getActiveGraph: () => modules.autoAgent.getActiveGraph?.() ?? null,
+  });
+
+  logger.info('ProgressService attached and ready');
 
   // Handle session resume if requested
   if (options.resume) {
@@ -175,6 +195,9 @@ function registerToolHandlers(
 
     const codeOptimizerConfig = (config.modules as any).codeOptimizer || DEFAULT_CODE_OPTIMIZER_CONFIG;
     if (codeOptimizerConfig.enabled !== false) tools.push(...getCodeOptimizerTools());
+
+    // Progress tools (Sprint 10)
+    tools.push(...getProgressToolDefinitions());
 
     logger.debug(`Listing ${tools.length} tools from enabled modules (CCG v4.0)`);
     return { tools };

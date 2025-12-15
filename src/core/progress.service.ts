@@ -67,6 +67,7 @@ export class ProgressService {
   private stateManager: StateManager;
   private eventBus: EventBus;
   private subscriptions: string[] = [];
+  private attached = false;
 
   constructor(deps: { stateManager: StateManager; eventBus: EventBus; logger?: Logger }) {
     this.stateManager = deps.stateManager;
@@ -75,9 +76,22 @@ export class ProgressService {
   }
 
   /**
-   * Attach to EventBus and start listening for workflow events
+   * Check if service is attached
+   */
+  isAttached(): boolean {
+    return this.attached;
+  }
+
+  /**
+   * Attach to EventBus and start listening for workflow events.
+   * Idempotent - safe to call multiple times.
    */
   attach(): void {
+    if (this.attached) {
+      this.logger.debug('ProgressService already attached, skipping');
+      return;
+    }
+
     this.logger.debug('Attaching to EventBus');
 
     // TaskGraph node events
@@ -121,6 +135,7 @@ export class ProgressService {
       this.eventBus.on('testing:failure', (e) => this.handleTestingFailure(e))
     );
 
+    this.attached = true;
     this.logger.info('ProgressService attached, listening for workflow events');
   }
 
@@ -132,6 +147,7 @@ export class ProgressService {
       this.eventBus.off(subId);
     }
     this.subscriptions = [];
+    this.attached = false;
     this.logger.info('ProgressService detached');
   }
 

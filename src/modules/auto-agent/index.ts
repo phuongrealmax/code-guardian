@@ -15,7 +15,7 @@ import { Logger } from '../../core/logger.js';
 import { AutoAgentModuleConfig } from './auto-agent.types.js';
 import { AutoAgentService } from './auto-agent.service.js';
 import { createAutoAgentTools } from './auto-agent.tools.js';
-import { TaskGraphService } from './task-graph.js';
+import { TaskGraphService, WorkflowGraph } from './task-graph.js';
 import { createTaskGraphTools, TASK_GRAPH_TOOL_DEFINITIONS } from './task-graph.tools.js';
 import { GovernorState } from '../resource/resource.types.js';
 
@@ -94,6 +94,7 @@ export class AutoAgentModule {
   private taskGraphService: TaskGraphService;
   private config: AutoAgentModuleConfig;
   private logger: Logger;
+  private activeGraph: WorkflowGraph | null = null;
 
   constructor(
     config: Partial<AutoAgentModuleConfig>,
@@ -133,6 +134,22 @@ export class AutoAgentModule {
 
   getTaskGraphService(): TaskGraphService {
     return this.taskGraphService;
+  }
+
+  /**
+   * Get the currently active workflow graph (for progress tools)
+   * Sprint 10: Multi-workflow support
+   */
+  getActiveGraph(): WorkflowGraph | null {
+    return this.activeGraph;
+  }
+
+  /**
+   * Set the active workflow graph
+   */
+  setActiveGraph(graph: WorkflowGraph | null): void {
+    this.activeGraph = graph;
+    this.logger.debug('Active graph updated', { hasGraph: !!graph });
   }
 
   /**
