@@ -260,7 +260,7 @@ export default function ProgressPage() {
               Blockers ({blockers.length})
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '800px', margin: '0 auto' }}>
-              {blockers.map((blocker, i) => (
+              {blockers.map((blocker) => (
                 <div key={blocker.nodeId} style={{
                   padding: '16px',
                   background: 'var(--bg-card)',

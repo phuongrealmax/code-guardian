@@ -2,11 +2,14 @@
 
 import Footer from './components/Footer'
 import WorkflowDiagram from './components/WorkflowDiagram'
+import ControlPlaneDiagram from './components/ControlPlaneDiagram'
 import CheckoutButton from './components/CheckoutButton'
 import { useScrollAnimation } from './hooks/useScrollAnimation'
 
 export default function Home() {
   const heroRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
+  const controlPlaneRef = useScrollAnimation<HTMLElement>({ threshold: 0.3 })
+  const blocksRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
   const statsRef = useScrollAnimation<HTMLElement>({ threshold: 0.3 })
   const personaRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
   const featuresRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
@@ -24,16 +27,16 @@ export default function Home() {
           <span className="badge">
             v4.0.1 — MIT Open-Core
           </span>
-          <h1>Turn Claude Code into a refactor engine for your biggest repos.</h1>
-          <p>
-            Free, local-first. Advanced tech-debt reports when your team is ready.
+          <h1>A safety & control layer for AI coding agents.</h1>
+          <p style={{fontSize: '1.25rem', maxWidth: '700px', margin: '0 auto 16px'}}>
+            Prevent Claude, Cursor, and AI agents from breaking your codebase.
           </p>
-          <p style={{fontSize: '0.9rem', opacity: 0.8, marginTop: '-8px'}}>
-            Dev tier runs fully offline. No license required.
+          <p style={{fontSize: '1rem', opacity: 0.8, maxWidth: '600px', margin: '0 auto'}}>
+            CCG sits between AI agents and your repository to enforce safety, policy, and structure.
           </p>
-          <div className="cta-buttons">
-            <a href="#get-started" className="btn btn-primary">Install via npm</a>
-            <a href="https://github.com/phuongrealmax/claude-code-guardian" className="btn btn-secondary" target="_blank" rel="noopener noreferrer">View GitHub Repo</a>
+          <div className="cta-buttons" style={{marginTop: '32px'}}>
+            <a href="#get-started" className="btn btn-primary">Install Guard</a>
+            <a href="#what-ccg-blocks" className="btn btn-secondary">See What CCG Blocks</a>
           </div>
 
           {/* Trust Badges */}
@@ -51,22 +54,122 @@ export default function Home() {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
-              Built on Claude
+              AI Safety Layer
             </span>
             <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <polyline points="16 18 22 12 16 6"/>
-                <polyline points="8 6 2 12 8 18"/>
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
               </svg>
-              MIT Open-Core
+              Blocks Dangerous Actions
             </span>
             <span style={{display: 'flex', alignItems: 'center', gap: '6px'}}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              100% Offline (Dev)
+              100% Local Control
             </span>
+          </div>
+        </div>
+      </section>
+
+      {/* Control Plane - How CCG Works */}
+      <section ref={controlPlaneRef} className="scroll-fade-in" style={{background: 'rgba(255,255,255,0.02)'}}>
+        <div className="container">
+          <h2>The Control Plane for AI Agents</h2>
+          <p className="subtitle">CCG sits between AI and your code. Every action goes through safety checks.</p>
+          <ControlPlaneDiagram />
+        </div>
+      </section>
+
+      {/* What CCG Blocks - OH SH*T Moment */}
+      <section ref={blocksRef} id="what-ccg-blocks" className="scroll-fade-in" style={{background: 'linear-gradient(135deg, #1a0a0a 0%, #2d1515 100%)'}}>
+        <div className="container">
+          <h2 style={{color: '#ef4444'}}>What CCG Blocks</h2>
+          <p className="subtitle" style={{marginBottom: '40px'}}>
+            Real examples of dangerous AI actions that CCG prevented.
+          </p>
+
+          <div className="features-grid" style={{gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'}}>
+            {/* Blocked Action 1 */}
+            <div className="feature-card stagger-item" style={{background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px'}}>
+                <span style={{background: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600}}>BLOCKED</span>
+                <span style={{opacity: 0.6, fontSize: '0.85rem'}}>Mass Delete</span>
+              </div>
+              <h3 style={{fontSize: '1rem', marginBottom: '8px'}}>AI wanted to delete 42 files</h3>
+              <p style={{fontSize: '0.9rem', opacity: 0.8, marginBottom: '16px'}}>
+                Claude attempted to &quot;clean up&quot; by removing entire <code>/src/core</code> directory during refactoring.
+              </p>
+              <div style={{background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '12px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.85rem', fontWeight: 500}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  CCG Response
+                </div>
+                <p style={{fontSize: '0.85rem', marginTop: '8px', opacity: 0.9}}>
+                  Blocked execution. Generated risk report. Required human approval for each file.
+                </p>
+              </div>
+            </div>
+
+            {/* Blocked Action 2 */}
+            <div className="feature-card stagger-item" style={{background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px'}}>
+                <span style={{background: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600}}>BLOCKED</span>
+                <span style={{opacity: 0.6, fontSize: '0.85rem'}}>Breaking Change</span>
+              </div>
+              <h3 style={{fontSize: '1rem', marginBottom: '8px'}}>AI rewrote database layer</h3>
+              <p style={{fontSize: '0.9rem', opacity: 0.8, marginBottom: '16px'}}>
+                Cursor attempted to change ORM from Prisma to Drizzle without migration plan.
+              </p>
+              <div style={{background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '12px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.85rem', fontWeight: 500}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  CCG Response
+                </div>
+                <p style={{fontSize: '0.85rem', marginTop: '8px', opacity: 0.9}}>
+                  Detected architectural change. Required migration plan before proceeding.
+                </p>
+              </div>
+            </div>
+
+            {/* Blocked Action 3 */}
+            <div className="feature-card stagger-item" style={{background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)'}}>
+              <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px'}}>
+                <span style={{background: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600}}>BLOCKED</span>
+                <span style={{opacity: 0.6, fontSize: '0.85rem'}}>API Breaking</span>
+              </div>
+              <h3 style={{fontSize: '1rem', marginBottom: '8px'}}>AI changed public API signature</h3>
+              <p style={{fontSize: '0.9rem', opacity: 0.8, marginBottom: '16px'}}>
+                Agent renamed exported functions without considering downstream consumers.
+              </p>
+              <div style={{background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '12px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.85rem', fontWeight: 500}}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  CCG Response
+                </div>
+                <p style={{fontSize: '0.85rem', marginTop: '8px', opacity: 0.9}}>
+                  Flagged breaking change. Suggested deprecation path with versioning.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Fear headline */}
+          <div style={{textAlign: 'center', marginTop: '48px', padding: '32px', background: 'rgba(0,0,0,0.3)', borderRadius: '16px'}}>
+            <p style={{fontSize: '1.5rem', fontWeight: 600, marginBottom: '8px'}}>
+              AI is powerful. Uncontrolled AI is dangerous.
+            </p>
+            <p style={{opacity: 0.7}}>
+              CCG ensures every AI action is safe, reversible, and human-approved.
+            </p>
           </div>
         </div>
       </section>
@@ -101,8 +204,8 @@ export default function Home() {
       {/* Built for Real Developer Workflows */}
       <section ref={personaRef} className="scroll-fade-in" style={{background: 'rgba(255,255,255,0.02)'}}>
         <div className="container">
-          <h2>Built for Real Developer Workflows</h2>
-          <p className="subtitle">No JSON wrangling. No complex setup. Just results.</p>
+          <h2>Safety Without Friction</h2>
+          <p className="subtitle">Protection that fits into your existing workflow.</p>
 
           <div className="features-grid">
             <div className="feature-card stagger-item">
@@ -112,10 +215,10 @@ export default function Home() {
                   <line x1="12" y1="19" x2="20" y2="19"/>
                 </svg>
               </div>
-              <h3>CLI-First, No JSON</h3>
+              <h3>Zero-Config Protection</h3>
               <p>
-                You never touch raw MCP JSON. Just run <code>ccg quickstart</code> and
-                use natural language with Claude. The tools handle the rest.
+                Run <code>ccg quickstart</code> and guard rails activate immediately.
+                No configuration needed. Sensible defaults protect you from day one.
               </p>
             </div>
             <div className="feature-card stagger-item">
@@ -126,10 +229,10 @@ export default function Home() {
                   <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
               </div>
-              <h3>IDE-Native</h3>
+              <h3>Works With Any AI Tool</h3>
               <p>
-                VS Code integration (Team) shows Tech Debt Index in your status bar.
                 <strong>Context Profiles</strong> auto-detect VSCode, Cursor, or CLI mode.
+                CCG protects regardless of which AI agent you use.
               </p>
             </div>
             <div className="feature-card stagger-item">
@@ -139,10 +242,10 @@ export default function Home() {
                   <polyline points="12 6 12 12 16 14"/>
                 </svg>
               </div>
-              <h3>Fast Enough for Daily Use</h3>
+              <h3>Instant Risk Analysis</h3>
               <p>
-                Quickstart analyzes ~100k LOC in under a second. Heavy Latent Chain
-                reasoning is there when you need it, not blocking your flow.
+                Analyze ~100k LOC in under a second. See risk scores before
+                AI makes any changes. Real-time protection without slowdown.
               </p>
             </div>
           </div>
@@ -152,48 +255,48 @@ export default function Home() {
       {/* Features - What It Does */}
       <section ref={featuresRef} className="scroll-fade-in">
         <div className="container">
-          <h2>What It Does</h2>
-          <p className="subtitle">Four capabilities organized by what you need and when.</p>
+          <h2>How CCG Protects Your Code</h2>
+          <p className="subtitle">Safety features organized by protection level.</p>
 
           <div className="features-grid" style={{gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))'}}>
             <div className="feature-card stagger-item">
               <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem'}}>Dev — Free</span>
-              <h3>Scan & Measure</h3>
+              <h3>Detect Risk Before AI Acts</h3>
               <p>
-                <strong>Tech Debt Index</strong> (0-100, grade A-F) gives you one number
-                for codebase health. Hotspot detection finds large files and high complexity.
+                <strong>Tech Debt Index</strong> (0-100, grade A-F) identifies structural risk.
+                Hotspot detection flags files AI should never touch blindly.
               </p>
             </div>
             <div className="feature-card stagger-item">
               <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem'}}>Dev — Free</span>
-              <h3>Plan & Refactor with Claude</h3>
+              <h3>Human-Reviewable Execution Plans</h3>
               <p>
-                <strong>Latent Chain</strong> mode walks through Analysis, Plan, Impl, Review.
-                Guard module blocks dangerous patterns before they ship.
+                <strong>Latent Chain</strong> mode enforces Analysis → Plan → Impl → Review.
+                Guard module blocks dangerous patterns before they execute.
               </p>
             </div>
             <div className="feature-card stagger-item">
               <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem', background: 'var(--primary)'}}>Team</span>
-              <h3>Track Progress Over Time</h3>
+              <h3>Audit Trail & Rollback</h3>
               <p>
-                Before/after metrics and <strong>TDI trend charts</strong>. Session history
-                shows how your codebase improves sprint over sprint.
+                Before/after metrics and <strong>checkpoint system</strong>. Every AI action
+                is logged and reversible. Full session history for compliance.
               </p>
             </div>
             <div className="feature-card stagger-item">
               <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem', background: 'var(--primary)'}}>Team / Enterprise</span>
-              <h3>Integrate with Your Workflow</h3>
+              <h3>CI/CD Safety Gates</h3>
               <p>
-                <strong>GitHub Action</strong> PR comments + quality gates. VS Code integration (Team).
-                Multi-repo config for monorepos. Claude Code MCP integration.
+                <strong>GitHub Action</strong> blocks PRs that exceed risk threshold.
+                Quality gates prevent unsafe code from reaching production.
               </p>
             </div>
             <div className="feature-card stagger-item">
               <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem', background: 'var(--primary)'}}>Team</span>
-              <h3>Security Analysis (STRIDE)</h3>
+              <h3>Security & Threat Detection</h3>
               <p>
-                <strong>Threat modeling</strong> built-in. Detect SQL injection, hardcoded secrets,
-                and vulnerabilities using Microsoft&apos;s STRIDE framework.
+                <strong>STRIDE threat modeling</strong> built-in. Detect SQL injection,
+                hardcoded secrets, and vulnerabilities before AI introduces them.
               </p>
             </div>
           </div>
