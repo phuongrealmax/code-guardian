@@ -84,78 +84,78 @@ export default function Home() {
       </section>
 
       {/* What CCG Blocks - OH SH*T Moment */}
-      <section ref={blocksRef} id="what-ccg-blocks" className="scroll-fade-in" style={{background: 'linear-gradient(135deg, #1a0a0a 0%, #2d1515 100%)'}}>
+      <section ref={blocksRef} id="what-ccg-blocks" className="scroll-fade-in" style={{background: 'rgba(255,255,255,0.02)'}}>
         <div className="container">
-          <h2 style={{color: '#ef4444'}}>What CCG Blocks</h2>
+          <h2>What CCG Blocks</h2>
           <p className="subtitle" style={{marginBottom: '40px'}}>
             Real examples of dangerous AI actions that CCG prevented.
           </p>
 
           <div className="features-grid" style={{gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'}}>
             {/* Blocked Action 1 */}
-            <div className="feature-card stagger-item" style={{background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)'}}>
+            <div className="feature-card stagger-item">
               <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px'}}>
-                <span style={{background: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600}}>BLOCKED</span>
+                <span style={{background: 'rgba(255,255,255,0.15)', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, border: '1px solid rgba(255,255,255,0.3)'}}>BLOCKED</span>
                 <span style={{opacity: 0.6, fontSize: '0.85rem'}}>Mass Delete</span>
               </div>
               <h3 style={{fontSize: '1rem', marginBottom: '8px'}}>AI wanted to delete 42 files</h3>
               <p style={{fontSize: '0.9rem', opacity: 0.8, marginBottom: '16px'}}>
                 Claude attempted to &quot;clean up&quot; by removing entire <code>/src/core</code> directory during refactoring.
               </p>
-              <div style={{background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '12px'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.85rem', fontWeight: 500}}>
+              <div style={{background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '12px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 500}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                   </svg>
                   CCG Response
                 </div>
-                <p style={{fontSize: '0.85rem', marginTop: '8px', opacity: 0.9}}>
+                <p style={{fontSize: '0.85rem', marginTop: '8px', opacity: 0.7}}>
                   Blocked execution. Generated risk report. Required human approval for each file.
                 </p>
               </div>
             </div>
 
             {/* Blocked Action 2 */}
-            <div className="feature-card stagger-item" style={{background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)'}}>
+            <div className="feature-card stagger-item">
               <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px'}}>
-                <span style={{background: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600}}>BLOCKED</span>
+                <span style={{background: 'rgba(255,255,255,0.15)', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, border: '1px solid rgba(255,255,255,0.3)'}}>BLOCKED</span>
                 <span style={{opacity: 0.6, fontSize: '0.85rem'}}>Breaking Change</span>
               </div>
               <h3 style={{fontSize: '1rem', marginBottom: '8px'}}>AI rewrote database layer</h3>
               <p style={{fontSize: '0.9rem', opacity: 0.8, marginBottom: '16px'}}>
                 Cursor attempted to change ORM from Prisma to Drizzle without migration plan.
               </p>
-              <div style={{background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '12px'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.85rem', fontWeight: 500}}>
+              <div style={{background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '12px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 500}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                   </svg>
                   CCG Response
                 </div>
-                <p style={{fontSize: '0.85rem', marginTop: '8px', opacity: 0.9}}>
+                <p style={{fontSize: '0.85rem', marginTop: '8px', opacity: 0.7}}>
                   Detected architectural change. Required migration plan before proceeding.
                 </p>
               </div>
             </div>
 
             {/* Blocked Action 3 */}
-            <div className="feature-card stagger-item" style={{background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)'}}>
+            <div className="feature-card stagger-item">
               <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px'}}>
-                <span style={{background: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600}}>BLOCKED</span>
+                <span style={{background: 'rgba(255,255,255,0.15)', color: 'white', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, border: '1px solid rgba(255,255,255,0.3)'}}>BLOCKED</span>
                 <span style={{opacity: 0.6, fontSize: '0.85rem'}}>API Breaking</span>
               </div>
               <h3 style={{fontSize: '1rem', marginBottom: '8px'}}>AI changed public API signature</h3>
               <p style={{fontSize: '0.9rem', opacity: 0.8, marginBottom: '16px'}}>
                 Agent renamed exported functions without considering downstream consumers.
               </p>
-              <div style={{background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', padding: '12px'}}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '6px', color: '#10b981', fontSize: '0.85rem', fontWeight: 500}}>
+              <div style={{background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '12px'}}>
+                <div style={{display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 500}}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                   </svg>
                   CCG Response
                 </div>
-                <p style={{fontSize: '0.85rem', marginTop: '8px', opacity: 0.9}}>
+                <p style={{fontSize: '0.85rem', marginTop: '8px', opacity: 0.7}}>
                   Flagged breaking change. Suggested deprecation path with versioning.
                 </p>
               </div>
@@ -163,7 +163,7 @@ export default function Home() {
           </div>
 
           {/* Fear headline */}
-          <div style={{textAlign: 'center', marginTop: '48px', padding: '32px', background: 'rgba(0,0,0,0.3)', borderRadius: '16px'}}>
+          <div style={{textAlign: 'center', marginTop: '48px', padding: '32px', background: 'rgba(255,255,255,0.03)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)'}}>
             <p style={{fontSize: '1.5rem', fontWeight: 600, marginBottom: '8px'}}>
               AI is powerful. Uncontrolled AI is dangerous.
             </p>
