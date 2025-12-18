@@ -105,7 +105,7 @@ export function parseSourceFile(
  */
 function extractImports(content: string, pattern: RegExp): string[] {
   const imports: string[] = [];
-  let match;
+  let match: RegExpExecArray | null;
 
   while ((match = pattern.exec(content)) !== null) {
     imports.push(match[0]);
@@ -126,7 +126,7 @@ function extractFunctions(
   imports: string[]
 ): CodeChunk[] {
   const chunks: CodeChunk[] = [];
-  let match;
+  let match: RegExpExecArray | null;
 
   while ((match = pattern.exec(content)) !== null) {
     const name = match[1];
@@ -167,7 +167,7 @@ function extractClasses(
   imports: string[]
 ): CodeChunk[] {
   const chunks: CodeChunk[] = [];
-  let match;
+  let match: RegExpExecArray | null;
 
   while ((match = pattern.exec(content)) !== null) {
     const name = match[1];
@@ -207,7 +207,7 @@ function extractInterfaces(
   pattern: RegExp
 ): CodeChunk[] {
   const chunks: CodeChunk[] = [];
-  let match;
+  let match: RegExpExecArray | null;
 
   while ((match = pattern.exec(content)) !== null) {
     const name = match[1];
@@ -245,7 +245,7 @@ function extractTypes(
   pattern: RegExp
 ): CodeChunk[] {
   const chunks: CodeChunk[] = [];
-  let match;
+  let match: RegExpExecArray | null;
 
   while ((match = pattern.exec(content)) !== null) {
     const name = match[1];

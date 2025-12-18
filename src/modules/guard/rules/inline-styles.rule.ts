@@ -130,7 +130,7 @@ export class InlineStylesRule implements IGuardRule {
 
     // Pattern 1: React style={{ ... }}
     const reactPattern = /style\s*=\s*\{\s*\{([^}]*(?:\{[^}]*\}[^}]*)*)\}\s*\}/g;
-    let match;
+    let match: RegExpExecArray | null;
 
     while ((match = reactPattern.exec(code)) !== null) {
       const styleContent = match[1];

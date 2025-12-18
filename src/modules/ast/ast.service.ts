@@ -251,7 +251,7 @@ export class ASTService {
     if (language === 'typescript' || language === 'javascript') {
       // ES imports
       const esImportRegex = /import\s+(?:(?:\{[^}]+\}|\*\s+as\s+\w+|\w+)(?:\s*,\s*(?:\{[^}]+\}|\w+))*\s+from\s+)?['"]([^'"]+)['"]/g;
-      let match;
+      let match: RegExpExecArray | null;
       while ((match = esImportRegex.exec(content)) !== null) {
         if (match[1]) imports.push(match[1]);
       }
@@ -265,7 +265,7 @@ export class ASTService {
       // Python imports
       const fromImportRegex = /from\s+([\w.]+)\s+import/g;
       const importRegex = /^import\s+([\w.]+)/gm;
-      let match;
+      let match: RegExpExecArray | null;
       while ((match = fromImportRegex.exec(content)) !== null) {
         imports.push(match[1]);
       }
@@ -275,7 +275,7 @@ export class ASTService {
     } else if (language === 'go') {
       // Go imports
       const goImportRegex = /import\s+(?:\(\s*([\s\S]*?)\s*\)|"([^"]+)")/g;
-      let match;
+      let match: RegExpExecArray | null;
       while ((match = goImportRegex.exec(content)) !== null) {
         if (match[1]) {
           // Multiple imports in parentheses
@@ -301,7 +301,7 @@ export class ASTService {
     if (language === 'typescript' || language === 'javascript') {
       // Named exports
       const namedExportRegex = /export\s+(?:const|let|var|function|class|interface|type|enum)\s+(\w+)/g;
-      let match;
+      let match: RegExpExecArray | null;
       while ((match = namedExportRegex.exec(content)) !== null) {
         exports.push(match[1]);
       }

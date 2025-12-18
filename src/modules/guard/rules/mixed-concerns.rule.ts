@@ -155,7 +155,7 @@ export class MixedConcernsRule implements IGuardRule {
 
     // Check for large inline <script> tags
     const scriptPattern = /<script[^>]*>([^<]*(?:<(?!\/script>)[^<]*)*)<\/script>/gi;
-    let match;
+    let match: RegExpExecArray | null;
 
     while ((match = scriptPattern.exec(code)) !== null) {
       const scriptContent = match[1].trim();
