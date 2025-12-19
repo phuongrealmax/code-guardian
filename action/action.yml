@@ -1,0 +1,346 @@
+# Claude Code Guardian GitHub Action
+# https://github.com/anthropics/claude-code-guardian
+#
+# This action runs CCG analysis on your codebase and generates
+# tamper-evident Proof Packs with TDI budget enforcement.
+#
+# Usage:
+#   - uses: anthropics/claude-code-guardian@v1
+#     with:
+#       threshold: 70
+#       fail-on-budget-exceeded: true
+
+name: 'Claude Code Guardian'
+description: 'AI safety infrastructure for code validation with tamper-evident Proof Packs'
+author: 'Anthropic'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  threshold:
+    description: 'Hotspot score threshold for failure (0-100)'
+    required: false
+    default: '70'
+
+  fail-on-budget-exceeded:
+    description: 'Fail CI if TDI exceeds budget defined in .ccg/budgets.yaml'
+    required: false
+    default: 'true'
+
+  generate-proof-pack:
+    description: 'Generate tamper-evident Proof Pack for validation evidence'
+    required: false
+    default: 'true'
+
+  post-comment:
+    description: 'Post analysis results as PR comment'
+    required: false
+    default: 'true'
+
+  working-directory:
+    description: 'Working directory for analysis'
+    required: false
+    default: '.'
+
+  config-path:
+    description: 'Path to .ccg config directory'
+    required: false
+    default: '.ccg'
+
+outputs:
+  proof-pack-id:
+    description: 'ID of the generated Proof Pack'
+    value: ${{ steps.analyze.outputs.proof_pack_id }}
+
+  proof-pack-hash:
+    description: 'SHA-256 hash of the Proof Pack'
+    value: ${{ steps.analyze.outputs.proof_pack_hash }}
+
+  tdi-score:
+    description: 'Technical Debt Index score'
+    value: ${{ steps.analyze.outputs.tdi_score }}
+
+  tdi-budget-exceeded:
+    description: 'Whether TDI exceeded budget (true/false)'
+    value: ${{ steps.analyze.outputs.tdi_budget_exceeded }}
+
+  hotspot-count:
+    description: 'Number of hotspots detected'
+    value: ${{ steps.analyze.outputs.hotspot_count }}
+
+  critical-count:
+    description: 'Number of critical hotspots (score >= 80)'
+    value: ${{ steps.analyze.outputs.critical_count }}
+
+  quality-gate-passed:
+    description: 'Whether the quality gate passed (true/false)'
+    value: ${{ steps.gate.outputs.passed }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Install CCG
+      shell: bash
+      run: npm install -g codeguardian-studio
+
+    - name: Initialize CCG
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: |
+        if [ ! -d "${{ inputs.config-path }}" ]; then
+          ccg init --yes
+        fi
+
+    - name: Run Analysis & Generate Proof Pack
+      id: analyze
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        CCG_THRESHOLD: ${{ inputs.threshold }}
+        CCG_CI_MODE: 'true'
+        CCG_GENERATE_PROOF_PACK: ${{ inputs.generate-proof-pack }}
+        GITHUB_ACTOR: ${{ github.actor }}
+        GITHUB_SHA: ${{ github.sha }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+      run: |
+        set +e
+
+        # Create output directory
+        mkdir -p ${{ inputs.config-path }}/proofpacks
+
+        # Run code analysis
+        ccg code-optimize --json --ci --threshold $CCG_THRESHOLD > ${{ inputs.config-path }}/ci-analysis.json 2>&1
+        ANALYSIS_EXIT_CODE=$?
+
+        # Parse analysis results
+        if [ -f "${{ inputs.config-path }}/ci-analysis.json" ]; then
+          HOTSPOT_COUNT=$(cat ${{ inputs.config-path }}/ci-analysis.json | jq -r '.hotspots.summary.hotspotsFound // 0')
+          AVG_COMPLEXITY=$(cat ${{ inputs.config-path }}/ci-analysis.json | jq -r '.metrics.aggregate.avgComplexityScore // 0')
+          CRITICAL_COUNT=$(cat ${{ inputs.config-path }}/ci-analysis.json | jq -r '[.hotspots.hotspots[] | select(.score >= 80)] | length // 0')
+          TOTAL_LINES=$(cat ${{ inputs.config-path }}/ci-analysis.json | jq -r '.metrics.aggregate.totalLines // 0')
+        else
+          HOTSPOT_COUNT=0
+          AVG_COMPLEXITY=0
+          CRITICAL_COUNT=0
+          TOTAL_LINES=0
+        fi
+
+        # Calculate TDI score (weighted formula)
+        TDI_SCORE=$(echo "scale=2; $AVG_COMPLEXITY * 0.4 + $CRITICAL_COUNT * 10 + $HOTSPOT_COUNT * 2" | bc)
+
+        # Check TDI budget from budgets.yaml
+        TDI_BUDGET_EXCEEDED="false"
+        if [ -f "${{ inputs.config-path }}/budgets.yaml" ]; then
+          DEFAULT_BUDGET=$(cat ${{ inputs.config-path }}/budgets.yaml | yq '.tdi.default // 50')
+          if [ $(echo "$TDI_SCORE > $DEFAULT_BUDGET" | bc -l) -eq 1 ]; then
+            TDI_BUDGET_EXCEEDED="true"
+          fi
+        fi
+
+        # Generate Proof Pack if enabled
+        PROOF_PACK_ID=""
+        PROOF_PACK_HASH=""
+        if [ "${{ inputs.generate-proof-pack }}" = "true" ]; then
+          PROOF_PACK_ID="pp_$(date +%Y%m%d%H%M%S)_${GITHUB_RUN_ID}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+
+          # Create Proof Pack JSON
+          cat > ${{ inputs.config-path }}/proofpacks/${PROOF_PACK_ID}.json << EOF
+        {
+          "version": "1.1",
+          "id": "${PROOF_PACK_ID}",
+          "createdAt": "${TIMESTAMP}",
+          "target": {
+            "filename": "${{ inputs.working-directory }}",
+            "repository": "${{ github.repository }}",
+            "ref": "${{ github.ref }}",
+            "sha": "${GITHUB_SHA}"
+          },
+          "hashAlgorithm": "SHA-256",
+          "canonicalization": "json-stable-stringify@1",
+          "trustLevel": "CI_SIGNED",
+          "chainOfCustody": {
+            "actor": {
+              "type": "ci",
+              "id": "github-actions",
+              "displayName": "${GITHUB_ACTOR}"
+            },
+            "environment": {
+              "runnerId": "${GITHUB_RUN_ID}",
+              "os": "$(uname -s)",
+              "ccgVersion": "$(ccg --version 2>/dev/null || echo 'unknown')",
+              "nodeVersion": "$(node --version)",
+              "gitSha": "${GITHUB_SHA}"
+            },
+            "timestamp": "${TIMESTAMP}"
+          },
+          "validation": {
+            "valid": $([ $ANALYSIS_EXIT_CODE -eq 0 ] && echo "true" || echo "false"),
+            "errors": [],
+            "warnings": [],
+            "hotspotCount": ${HOTSPOT_COUNT},
+            "criticalCount": ${CRITICAL_COUNT}
+          },
+          "metricsDelta": {
+            "tdi": {
+              "before": 0,
+              "after": ${TDI_SCORE},
+              "delta": ${TDI_SCORE},
+              "budget": ${DEFAULT_BUDGET:-50},
+              "budgetExceeded": ${TDI_BUDGET_EXCEEDED}
+            }
+          }
+        }
+        EOF
+
+          # Compute hash (excluding hash field itself)
+          PROOF_PACK_HASH=$(cat ${{ inputs.config-path }}/proofpacks/${PROOF_PACK_ID}.json | jq -S 'del(.hash, .signature)' | sha256sum | cut -d' ' -f1)
+
+          # Add hash to Proof Pack
+          cat ${{ inputs.config-path }}/proofpacks/${PROOF_PACK_ID}.json | jq --arg hash "$PROOF_PACK_HASH" '. + {hash: $hash}' > ${{ inputs.config-path }}/proofpacks/${PROOF_PACK_ID}.tmp.json
+          mv ${{ inputs.config-path }}/proofpacks/${PROOF_PACK_ID}.tmp.json ${{ inputs.config-path }}/proofpacks/${PROOF_PACK_ID}.json
+
+          echo "Generated Proof Pack: ${PROOF_PACK_ID}"
+          echo "Hash: ${PROOF_PACK_HASH}"
+        fi
+
+        # Set outputs
+        echo "hotspot_count=${HOTSPOT_COUNT}" >> $GITHUB_OUTPUT
+        echo "critical_count=${CRITICAL_COUNT}" >> $GITHUB_OUTPUT
+        echo "tdi_score=${TDI_SCORE}" >> $GITHUB_OUTPUT
+        echo "tdi_budget_exceeded=${TDI_BUDGET_EXCEEDED}" >> $GITHUB_OUTPUT
+        echo "proof_pack_id=${PROOF_PACK_ID}" >> $GITHUB_OUTPUT
+        echo "proof_pack_hash=${PROOF_PACK_HASH}" >> $GITHUB_OUTPUT
+        echo "exit_code=${ANALYSIS_EXIT_CODE}" >> $GITHUB_OUTPUT
+
+        exit 0
+
+    - name: Post PR Comment
+      if: inputs.post-comment == 'true' && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+
+          const hotspotCount = parseInt('${{ steps.analyze.outputs.hotspot_count }}') || 0;
+          const criticalCount = parseInt('${{ steps.analyze.outputs.critical_count }}') || 0;
+          const tdiScore = parseFloat('${{ steps.analyze.outputs.tdi_score }}') || 0;
+          const tdiBudgetExceeded = '${{ steps.analyze.outputs.tdi_budget_exceeded }}' === 'true';
+          const proofPackId = '${{ steps.analyze.outputs.proof_pack_id }}';
+          const proofPackHash = '${{ steps.analyze.outputs.proof_pack_hash }}';
+          const threshold = '${{ inputs.threshold }}';
+
+          // Build comment
+          let body = `## 🛡️ Code Guardian Analysis\n\n`;
+
+          // Quality Gate Status
+          if (criticalCount > 0 || tdiBudgetExceeded) {
+            body += `> ❌ **Quality Gate Failed**\n>\n`;
+            if (criticalCount > 0) {
+              body += `> - ${criticalCount} critical hotspot(s) detected (score >= 80)\n`;
+            }
+            if (tdiBudgetExceeded) {
+              body += `> - TDI budget exceeded (score: ${tdiScore.toFixed(1)})\n`;
+            }
+          } else if (hotspotCount > 0) {
+            body += `> ⚠️ **${hotspotCount} hotspot(s)** detected | TDI: **${tdiScore.toFixed(1)}**\n`;
+          } else {
+            body += `> ✅ **Quality Gate Passed** | TDI: **${tdiScore.toFixed(1)}**\n`;
+          }
+          body += '\n';
+
+          // Metrics Table
+          body += `### Metrics\n\n`;
+          body += `| Metric | Value | Status |\n`;
+          body += `|--------|-------|--------|\n`;
+          body += `| TDI Score | ${tdiScore.toFixed(1)} | ${tdiBudgetExceeded ? '❌ Over budget' : '✅ Within budget'} |\n`;
+          body += `| Hotspots | ${hotspotCount} | ${hotspotCount > 5 ? '⚠️' : '✅'} |\n`;
+          body += `| Critical | ${criticalCount} | ${criticalCount > 0 ? '❌' : '✅'} |\n`;
+          body += `| Threshold | ${threshold} | - |\n\n`;
+
+          // Proof Pack Section
+          if (proofPackId) {
+            body += `### 📦 Proof Pack\n\n`;
+            body += `| Field | Value |\n`;
+            body += `|-------|-------|\n`;
+            body += `| ID | \`${proofPackId}\` |\n`;
+            body += `| Hash | \`${proofPackHash.substring(0, 16)}...\` |\n`;
+            body += `| Trust Level | CI_SIGNED |\n`;
+            body += `| Verify | \`ccg verify ${proofPackId}.json\` |\n\n`;
+          }
+
+          // Footer
+          body += `---\n`;
+          body += `*Generated by [Claude Code Guardian](https://codeguardian.studio)*\n`;
+          body += `*Run \`ccg code-optimize --report\` locally for full details*`;
+
+          // Find and update existing comment
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+
+          const existingComment = comments.find(c =>
+            c.user.type === 'Bot' &&
+            c.body.includes('Code Guardian Analysis')
+          );
+
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: body
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+          }
+
+    - name: Upload Proof Pack
+      if: inputs.generate-proof-pack == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ccg-proof-pack
+        path: ${{ inputs.config-path }}/proofpacks/*.json
+        retention-days: 90
+
+    - name: Check Quality Gate
+      id: gate
+      shell: bash
+      env:
+        CRITICAL_COUNT: ${{ steps.analyze.outputs.critical_count }}
+        TDI_BUDGET_EXCEEDED: ${{ steps.analyze.outputs.tdi_budget_exceeded }}
+        FAIL_ON_BUDGET: ${{ inputs.fail-on-budget-exceeded }}
+      run: |
+        PASSED="true"
+
+        if [ "$CRITICAL_COUNT" -gt 0 ]; then
+          echo "❌ Quality gate failed: $CRITICAL_COUNT critical hotspot(s) detected"
+          PASSED="false"
+        fi
+
+        if [ "$FAIL_ON_BUDGET" = "true" ] && [ "$TDI_BUDGET_EXCEEDED" = "true" ]; then
+          echo "❌ Quality gate failed: TDI budget exceeded"
+          PASSED="false"
+        fi
+
+        echo "passed=$PASSED" >> $GITHUB_OUTPUT
+
+        if [ "$PASSED" = "false" ]; then
+          exit 1
+        fi
+
+        echo "✅ Quality gate passed"

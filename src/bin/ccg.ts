@@ -36,6 +36,8 @@ import { createReportCommand } from './commands/report.js';
 import { createQuickstartCommand } from './commands/quickstart.js';
 import { createDoctorCommand } from './commands/doctor.js';
 import { createDogfoodReportCommand } from './commands/dogfood-report.js';
+import { createVerifyCommand } from './commands/verify.js';
+import { createCloudCommand } from './commands/cloud.js';
 import { CONFIG_TEMPLATE } from '../core/multi-repo-config.js';
 
 // ES module equivalent of __dirname
@@ -236,6 +238,8 @@ program.addCommand(createCodeOptimizeCommand());
 program.addCommand(createReportCommand());
 program.addCommand(createDogfoodReportCommand());
 program.addCommand(createActivateCommand());
+program.addCommand(createVerifyCommand());
+program.addCommand(createCloudCommand());
 
 // ═══════════════════════════════════════════════════════════════
 //                      HELPER FUNCTIONS

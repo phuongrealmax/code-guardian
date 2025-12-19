@@ -100,7 +100,12 @@ export type CCGEventType =
   // AST events (MCP-first code parsing)
   | 'ast:file:parsed'
   | 'ast:symbols:extracted'
-  | 'ast:dependencies:built';
+  | 'ast:dependencies:built'
+  // Proof Pack events (Sprint 1)
+  | 'proofpack:created'
+  | 'proofpack:verified'
+  | 'proofpack:failed'
+  | 'proofpack:uploaded';
 
 export interface CCGEvent<T = unknown> {
   type: CCGEventType;
@@ -108,6 +113,38 @@ export interface CCGEvent<T = unknown> {
   data?: T;
   source?: string;
   sessionId?: string;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                 PROOF PACK EVENT PAYLOADS (Sprint 1)
+// ═══════════════════════════════════════════════════════════════
+
+export interface ProofPackCreatedEvent {
+  proofPackId: string;
+  filename: string;
+  hash: string;
+  trustLevel: 'LOCAL_UNSIGNED' | 'LOCAL_SIGNED' | 'CI_SIGNED';
+  sessionId?: string;
+}
+
+export interface ProofPackVerifiedEvent {
+  proofPackId: string;
+  verified: boolean;
+  reason?: 'HASH_MISMATCH' | 'INVALID_SIGNATURE' | 'SCHEMA_INVALID';
+}
+
+export interface ProofPackFailedEvent {
+  stage: 'CREATE' | 'VERIFY' | 'WRAP_VALIDATION';
+  errorCode: string;
+  message: string;
+  filename?: string;
+  sessionId?: string;
+}
+
+export interface ProofPackUploadedEvent {
+  proofPackId: string;
+  destination: 'cloud';
+  status: 'SKIPPED_FLAG_OFF' | 'STARTED' | 'COMPLETED' | 'FAILED';
 }
 
 export type EventHandler<T = unknown> = (event: CCGEvent<T>) => void | Promise<void>;

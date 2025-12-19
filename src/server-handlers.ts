@@ -22,6 +22,7 @@ import { AutoAgentModule } from './modules/auto-agent/index.js';
 import { RAGModule } from './modules/rag/index.js';
 import { CodeOptimizerService, createCodeOptimizerToolHandlers } from './modules/code-optimizer/index.js';
 import { SessionModule, getSessionToolDefinitions } from './modules/session/index.js';
+import { ProofPackModule } from './modules/proof-pack/index.js';
 import { ProgressService } from './core/progress.service.js';
 import { PROGRESS_TOOL_DEFINITIONS, handleProgressTool, ProgressToolDeps } from './core/progress.tools.js';
 import { CCGRunService, CCG_RUN_TOOL_DEFINITION, CCGRunServiceDeps } from './core/ccg-run/index.js';
@@ -45,6 +46,7 @@ export interface CCGModules {
   rag: RAGModule;
   codeOptimizer: CodeOptimizerService;
   session: SessionModule;
+  proofPack: ProofPackModule;
 }
 
 interface SessionInitResult {
@@ -205,6 +207,9 @@ export async function routeToolCall(
 
     case 'ccg':
       return handleCCGRunTool(args);
+
+    case 'proof':
+      return modules.proofPack.handleTool(name, args);
 
     default:
       throw new Error(`Unknown module: ${moduleName}`);

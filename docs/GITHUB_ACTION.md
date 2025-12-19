@@ -1,6 +1,13 @@
 # CCG GitHub Action
 
-Run Code Guardian Studio analysis on your pull requests with automatic PR comments.
+Run Code Guardian Studio analysis on your pull requests with **tamper-evident Proof Packs** and **TDI budget enforcement**.
+
+## Features
+
+- **Proof Pack Generation** - Tamper-evident validation evidence with SHA-256 hash
+- **TDI Budget Gates** - Fail CI if Technical Debt Index exceeds budget
+- **PR Comments** - Automatic analysis summary posted to PRs
+- **Artifact Storage** - Proof Packs stored as GitHub Artifacts (90 days)
 
 ## Quick Start
 
@@ -14,111 +21,148 @@ on:
   pull_request:
     branches: [main, master]
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   analyze:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: codeguardian/ccg-action@v1
+      - uses: anthropics/claude-code-guardian@v1
         with:
           threshold: 70
-          strategy: mixed
-          comment-on-pr: true
+          fail-on-budget-exceeded: true
+          generate-proof-pack: true
 ```
 
 ## Inputs
 
 | Input | Description | Default |
 |-------|-------------|---------|
-| `threshold` | Fail if any hotspot score exceeds this value (0-100) | `70` |
-| `include` | Glob patterns for files to include (comma-separated) | `**/*.ts,**/*.tsx,**/*.js,**/*.jsx` |
-| `exclude` | Glob patterns for files to exclude (comma-separated) | `node_modules/**,dist/**,build/**,.git/**` |
-| `strategy` | Analysis strategy: `size`, `complexity`, or `mixed` | `mixed` |
-| `fail-on-issues` | Fail the action if any issues are found | `true` |
-| `comment-on-pr` | Post analysis results as PR comment | `true` |
-| `max-hotspots` | Maximum number of hotspots to report | `20` |
-| `guard-rules` | Guard rules to enable (comma-separated, or "all") | `all` |
+| `threshold` | Hotspot score threshold for failure (0-100) | `70` |
+| `fail-on-budget-exceeded` | Fail CI if TDI exceeds budget in `.ccg/budgets.yaml` | `true` |
+| `generate-proof-pack` | Generate tamper-evident Proof Pack | `true` |
+| `post-comment` | Post analysis results as PR comment | `true` |
+| `working-directory` | Working directory for analysis | `.` |
+| `config-path` | Path to .ccg config directory | `.ccg` |
 
 ## Outputs
 
 | Output | Description |
 |--------|-------------|
-| `hotspots-count` | Number of hotspots found |
-| `avg-complexity` | Average complexity score |
-| `max-complexity` | Maximum complexity score found |
-| `total-issues` | Total number of guard issues found |
-| `files-analyzed` | Number of files analyzed |
-| `report-path` | Path to the generated report file |
-| `passed` | Whether the analysis passed all thresholds |
+| `proof-pack-id` | ID of the generated Proof Pack |
+| `proof-pack-hash` | SHA-256 hash of the Proof Pack |
+| `tdi-score` | Technical Debt Index score |
+| `tdi-budget-exceeded` | Whether TDI exceeded budget (true/false) |
+| `hotspot-count` | Number of hotspots detected |
+| `critical-count` | Number of critical hotspots (score >= 80) |
+| `quality-gate-passed` | Whether the quality gate passed (true/false) |
+
+## TDI Budget Configuration
+
+Create `.ccg/budgets.yaml` to set TDI budgets per folder:
+
+```yaml
+tdi:
+  default: 50
+  budgets:
+    "src/api/": 40
+    "src/legacy/": 70
+    "src/utils/": 30
+```
+
+The action will fail if any folder exceeds its budget.
 
 ## Example Workflows
 
-### Basic Analysis
+### Basic with Proof Pack
 
 ```yaml
-- uses: codeguardian/ccg-action@v1
+- uses: anthropics/claude-code-guardian@v1
+  id: ccg
+
+- name: Show Proof Pack
+  run: |
+    echo "Proof Pack ID: ${{ steps.ccg.outputs.proof-pack-id }}"
+    echo "Hash: ${{ steps.ccg.outputs.proof-pack-hash }}"
 ```
 
-### Strict Mode (Lower Threshold)
+### Strict TDI Enforcement
 
 ```yaml
-- uses: codeguardian/ccg-action@v1
+- uses: anthropics/claude-code-guardian@v1
   with:
     threshold: 50
-    fail-on-issues: true
+    fail-on-budget-exceeded: true
 ```
 
-### TypeScript Only
+### Analysis Only (No Gate)
 
 ```yaml
-- uses: codeguardian/ccg-action@v1
+- uses: anthropics/claude-code-guardian@v1
   with:
-    include: "**/*.ts,**/*.tsx"
-    exclude: "node_modules/**,**/*.test.ts,**/*.spec.ts"
+    fail-on-budget-exceeded: false
+    generate-proof-pack: false
 ```
 
-### Security Focus
+### Custom Working Directory
 
 ```yaml
-- uses: codeguardian/ccg-action@v1
+- uses: anthropics/claude-code-guardian@v1
   with:
-    guard-rules: "hardcoded-secrets,sql-injection,xss-vulnerability"
-    fail-on-issues: true
-```
-
-### Silent Mode (No PR Comments)
-
-```yaml
-- uses: codeguardian/ccg-action@v1
-  with:
-    comment-on-pr: false
+    working-directory: ./packages/core
+    config-path: ./packages/core/.ccg
 ```
 
 ## PR Comment Format
 
-When `comment-on-pr: true`, CCG posts a formatted comment showing:
+When `post-comment: true`, CCG posts a formatted comment:
 
 ```markdown
 ## 🛡️ Code Guardian Analysis
 
-| Metric | Value |
-|--------|-------|
-| Files Analyzed | 45 |
-| Hotspots Found | 3 |
-| Avg Complexity | 42 |
-| Max Complexity | 78 |
+> ✅ **Quality Gate Passed** | TDI: **32.5**
 
-### Top Hotspots
+### Metrics
 
-| File | Score | Issue | Action |
-|------|-------|-------|--------|
-| `src/api/handler.ts` | 78 | High complexity | refactor |
-| `src/utils/parser.ts` | 65 | Deep nesting | simplify |
+| Metric | Value | Status |
+|--------|-------|--------|
+| TDI Score | 32.5 | ✅ Within budget |
+| Hotspots | 3 | ✅ |
+| Critical | 0 | ✅ |
+| Threshold | 70 | - |
 
-### Guard Issues
+### 📦 Proof Pack
 
-- ⚠️ `src/config.ts`: Potential hardcoded secret detected
+| Field | Value |
+|-------|-------|
+| ID | `pp_20251220001234_12345` |
+| Hash | `a1b2c3d4e5f6...` |
+| Trust Level | CI_SIGNED |
+| Verify | `ccg verify pp_20251220001234_12345.json` |
+```
+
+## Proof Pack Verification
+
+Verify a Proof Pack locally:
+
+```bash
+# Download artifact from GitHub Actions
+gh run download <run-id> -n ccg-proof-pack
+
+# Verify integrity
+ccg verify .ccg/proofpacks/pp_*.json
+```
+
+Output:
+```
+✅ PASS: Hash verified
+   ID: pp_20251220001234_12345
+   Trust Level: CI_SIGNED
+   Created: 2025-12-20T00:12:34.000Z
 ```
 
 ## Using Outputs
@@ -126,53 +170,53 @@ When `comment-on-pr: true`, CCG posts a formatted comment showing:
 Access action outputs in subsequent steps:
 
 ```yaml
-- uses: codeguardian/ccg-action@v1
+- uses: anthropics/claude-code-guardian@v1
   id: ccg
 
 - name: Check Results
   run: |
-    echo "Hotspots: ${{ steps.ccg.outputs.hotspots-count }}"
-    echo "Passed: ${{ steps.ccg.outputs.passed }}"
+    echo "TDI Score: ${{ steps.ccg.outputs.tdi-score }}"
+    echo "Quality Gate: ${{ steps.ccg.outputs.quality-gate-passed }}"
+    echo "Proof Pack: ${{ steps.ccg.outputs.proof-pack-id }}"
 
-- name: Fail if Critical
-  if: steps.ccg.outputs.max-complexity > 90
-  run: exit 1
+- name: Fail if Critical Hotspots
+  if: steps.ccg.outputs.critical-count > 0
+  run: |
+    echo "❌ Found ${{ steps.ccg.outputs.critical-count }} critical hotspots"
+    exit 1
 ```
 
-## Local Development
+## Artifact Retention
 
-The action uses Docker. To test locally:
+Proof Packs are uploaded as GitHub Artifacts with 90-day retention:
+
+```yaml
+- uses: anthropics/claude-code-guardian@v1
+
+# Proof Pack available at:
+# Actions > Run > Artifacts > ccg-proof-pack
+```
+
+To download programmatically:
 
 ```bash
-cd ccg-action
-docker build -t ccg-action .
-docker run -v $(pwd):/github/workspace ccg-action 70 "**/*.ts" "node_modules/**" mixed true true 20 all
+gh run download <run-id> -n ccg-proof-pack -D ./proofpacks
 ```
 
 ## Troubleshooting
 
 ### Action Timeout
 
-Large repositories may exceed the default timeout. Increase it:
+Large repositories may exceed the default timeout:
 
 ```yaml
-- uses: codeguardian/ccg-action@v1
+- uses: anthropics/claude-code-guardian@v1
   timeout-minutes: 10
 ```
 
-### No Files Analyzed
+### Permission Denied for PR Comments
 
-Check your `include` patterns match your file structure:
-
-```yaml
-- uses: codeguardian/ccg-action@v1
-  with:
-    include: "src/**/*.ts,lib/**/*.js"
-```
-
-### Permission Denied
-
-Ensure the action has write permissions for PR comments:
+Ensure the workflow has write permissions:
 
 ```yaml
 permissions:
@@ -180,11 +224,29 @@ permissions:
   contents: read
 ```
 
+### TDI Budget Not Found
+
+Create `.ccg/budgets.yaml` or the action uses default budget of 50:
+
+```bash
+ccg init --yes
+```
+
+### Proof Pack Verification Failed
+
+If `ccg verify` fails, the Proof Pack may have been tampered with:
+
+```bash
+ccg verify proofpack.json --json
+# Output shows expected vs actual hash
+```
+
 ## Related
 
 - [VS Code Extension](VS_CODE_EXTENSION.md) - View reports in your editor
 - [Quickstart Guide](QUICKSTART.md) - Get started with CCG
 - [User Guide](USER_GUIDE.md) - Complete documentation
+- [Tools Reference](TOOLS_REFERENCE.md) - MCP tools for Proof Packs
 
 ---
 

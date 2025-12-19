@@ -32,6 +32,10 @@ import {
   SessionModule,
   DEFAULT_SESSION_CONFIG,
 } from '../modules/session/index.js';
+import {
+  ProofPackModule,
+  DEFAULT_PROOF_PACK_CONFIG,
+} from '../modules/proof-pack/index.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      DEFAULT CONFIGS
@@ -113,6 +117,13 @@ export function resolveSessionConfig(config: CCGConfig) {
   return (config.modules as any).session || DEFAULT_SESSION_CONFIG;
 }
 
+/**
+ * Resolve proof-pack config with defaults
+ */
+export function resolveProofPackConfig(config: CCGConfig) {
+  return (config.modules as any).proofPack || DEFAULT_PROOF_PACK_CONFIG;
+}
+
 // ═══════════════════════════════════════════════════════════════
 //                      MODULE FACTORY
 // ═══════════════════════════════════════════════════════════════
@@ -132,6 +143,7 @@ export interface CCGModules {
   rag: RAGModule;
   codeOptimizer: CodeOptimizerService;
   session: SessionModule;
+  proofPack: ProofPackModule;
 }
 
 /**
@@ -152,6 +164,7 @@ export function createModules(
   const ragConfig = resolveRAGConfig(config);
   const codeOptimizerConfig = resolveCodeOptimizerConfig(config);
   const sessionConfig = (config.modules as any).session || DEFAULT_SESSION_CONFIG;
+  const proofPackConfig = resolveProofPackConfig(config);
 
   logger.debug('Creating modules with resolved configs');
 
@@ -175,6 +188,7 @@ export function createModules(
       projectRoot
     ),
     session: new SessionModule(sessionConfig, eventBus, logger, projectRoot),
+    proofPack: new ProofPackModule(proofPackConfig, eventBus, logger, projectRoot),
   };
 }
 
@@ -218,6 +232,11 @@ export async function initializeModules(
   const sessionConfig = resolveSessionConfig(config);
   if (sessionConfig.enabled !== false) {
     initPromises.push(modules.session.initialize());
+  }
+
+  const proofPackConfig = resolveProofPackConfig(config);
+  if (proofPackConfig.enabled !== false) {
+    initPromises.push(modules.proofPack.initialize());
   }
 
   await Promise.all(initPromises);

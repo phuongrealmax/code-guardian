@@ -215,6 +215,10 @@ function registerToolHandlers(
     // CCG Run tool (single entrypoint)
     tools.push(getCCGRunToolDefinition());
 
+    // Proof Pack tools (Sprint 1 v2.1)
+    const proofPackConfig = (config.modules as any).proofPack || { enabled: true };
+    if (proofPackConfig.enabled !== false) tools.push(...modules.proofPack.getTools());
+
     logger.debug(`Listing ${tools.length} tools from enabled modules (CCG v4.0)`);
     return { tools };
   });

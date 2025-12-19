@@ -1,0 +1,564 @@
+openapi: 3.0.3
+info:
+  title: CCG Evidence Vault API
+  description: |
+    API for storing and retrieving tamper-evident Proof Packs.
+
+    Features:
+    - Append-only storage (immutable audit trail)
+    - SHA-256 hash verification on upload
+    - Query and export capabilities
+    - Retention policy enforcement
+
+    **Security:** API key required via `Authorization: Bearer <api_key>` header.
+  version: 1.0.0
+  contact:
+    name: CCG Support
+    url: https://codeguardian.studio/support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.codeguardian.studio/v1
+    description: Production
+  - url: https://api-staging.codeguardian.studio/v1
+    description: Staging
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: ProofPacks
+    description: Proof Pack operations
+  - name: Health
+    description: Health check endpoints
+
+paths:
+  /proofpacks:
+    post:
+      tags: [ProofPacks]
+      summary: Upload a Proof Pack
+      description: |
+        Upload a Proof Pack to the vault. The server will:
+        1. Verify the SHA-256 hash integrity
+        2. Store the Proof Pack (append-only)
+        3. Apply retention policy
+        4. Return vault ID for future reference
+      operationId: uploadProofPack
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadRequest'
+      responses:
+        '201':
+          description: Proof Pack uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '400':
+          description: Validation error (invalid Proof Pack format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '401':
+          description: Unauthorized (invalid or missing API key)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: Hash verification failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '429':
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+    get:
+      tags: [ProofPacks]
+      summary: Query Proof Packs
+      description: Search and filter stored Proof Packs with pagination
+      operationId: queryProofPacks
+      parameters:
+        - name: repository
+          in: query
+          schema:
+            type: string
+          description: Filter by repository (format: owner/repo)
+        - name: actorId
+          in: query
+          schema:
+            type: string
+          description: Filter by actor ID
+        - name: trustLevel
+          in: query
+          schema:
+            type: string
+            enum: [LOCAL_UNSIGNED, LOCAL_SIGNED, CI_SIGNED]
+          description: Filter by trust level
+        - name: budgetExceeded
+          in: query
+          schema:
+            type: boolean
+          description: Filter by TDI budget exceeded status
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Start of date range (ISO 8601)
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: End of date range (ISO 8601)
+        - name: tags
+          in: query
+          schema:
+            type: string
+          description: Comma-separated list of tags
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum items per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+          description: Offset for pagination
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, tdiScore, repository]
+            default: createdAt
+          description: Sort field
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort order
+      responses:
+        '200':
+          description: Query results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /proofpacks/{vaultId}:
+    get:
+      tags: [ProofPacks]
+      summary: Get a Proof Pack by vault ID
+      operationId: getProofPack
+      parameters:
+        - name: vaultId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Vault-assigned ID
+      responses:
+        '200':
+          description: Proof Pack found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StoredProofPack'
+        '404':
+          description: Proof Pack not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /proofpacks/{vaultId}/verify:
+    get:
+      tags: [ProofPacks]
+      summary: Verify a Proof Pack in the vault
+      description: Verify that a Proof Pack exists and its hash is valid
+      operationId: verifyProofPack
+      parameters:
+        - name: vaultId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Verification result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  proofPack:
+                    $ref: '#/components/schemas/StoredProofPack'
+        '404':
+          description: Proof Pack not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /proofpacks/export:
+    post:
+      tags: [ProofPacks]
+      summary: Export Proof Packs
+      description: Generate an export file (JSON, CSV, or PDF) for download
+      operationId: exportProofPacks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExportRequest'
+      responses:
+        '200':
+          description: Export ready for download
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExportResponse'
+        '400':
+          description: Invalid export request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Check API health and connectivity
+      operationId: healthCheck
+      security: []
+      responses:
+        '200':
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok, degraded]
+                  version:
+                    type: string
+                  timestamp:
+                    type: string
+                    format: date-time
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        API key authentication.
+        Store key in environment variable `CCG_CLOUD_API_KEY`.
+
+  schemas:
+    ProofPack:
+      type: object
+      required:
+        - version
+        - id
+        - createdAt
+        - target
+        - hashAlgorithm
+        - canonicalization
+        - hash
+        - trustLevel
+        - chainOfCustody
+        - validation
+        - metricsDelta
+      properties:
+        version:
+          type: string
+          enum: ['1.1']
+        id:
+          type: string
+          description: Proof Pack ID (format: pp_xxxx)
+        createdAt:
+          type: string
+          format: date-time
+        target:
+          type: object
+          properties:
+            filename:
+              type: string
+        hashAlgorithm:
+          type: string
+          enum: [SHA-256]
+        canonicalization:
+          type: string
+          enum: ['json-stable-stringify@1']
+        hash:
+          type: string
+          description: SHA-256 hash of canonicalized content
+        signatureAlgorithm:
+          type: string
+          enum: [Ed25519]
+        signature:
+          type: string
+        trustLevel:
+          type: string
+          enum: [LOCAL_UNSIGNED, LOCAL_SIGNED, CI_SIGNED]
+        chainOfCustody:
+          $ref: '#/components/schemas/ChainOfCustody'
+        validation:
+          $ref: '#/components/schemas/ValidationResult'
+        metricsDelta:
+          $ref: '#/components/schemas/MetricsDelta'
+
+    ChainOfCustody:
+      type: object
+      required:
+        - actor
+        - environment
+        - timestamp
+      properties:
+        actor:
+          type: object
+          properties:
+            type:
+              type: string
+              enum: [user, ci]
+            id:
+              type: string
+            displayName:
+              type: string
+        environment:
+          type: object
+          properties:
+            os:
+              type: string
+            ccgVersion:
+              type: string
+            nodeVersion:
+              type: string
+            gitSha:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+
+    ValidationResult:
+      type: object
+      required:
+        - valid
+        - errors
+        - warnings
+      properties:
+        valid:
+          type: boolean
+        errors:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+
+    MetricsDelta:
+      type: object
+      properties:
+        tdi:
+          type: object
+          properties:
+            before:
+              type: number
+            after:
+              type: number
+            delta:
+              type: number
+            budget:
+              type: number
+            budgetExceeded:
+              type: boolean
+        coverage:
+          type: object
+          properties:
+            before:
+              type: number
+            after:
+              type: number
+            delta:
+              type: number
+        hotspots:
+          type: object
+          properties:
+            resolved:
+              type: integer
+            added:
+              type: integer
+            touched:
+              type: array
+              items:
+                type: string
+
+    StoredProofPack:
+      type: object
+      properties:
+        proofPack:
+          $ref: '#/components/schemas/ProofPack'
+        vaultId:
+          type: string
+        storedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        verified:
+          type: boolean
+        region:
+          type: string
+        encrypted:
+          type: boolean
+
+    UploadRequest:
+      type: object
+      required:
+        - proofPack
+      properties:
+        proofPack:
+          $ref: '#/components/schemas/ProofPack'
+        tags:
+          type: array
+          items:
+            type: string
+        retentionDays:
+          type: integer
+          minimum: 1
+          maximum: 365
+          default: 90
+        repository:
+          type: object
+          properties:
+            owner:
+              type: string
+            name:
+              type: string
+            ref:
+              type: string
+
+    UploadResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        vaultId:
+          type: string
+        hashVerified:
+          type: boolean
+        storedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        error:
+          type: string
+
+    QueryResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StoredProofPack'
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        hasMore:
+          type: boolean
+
+    ExportRequest:
+      type: object
+      required:
+        - query
+        - format
+      properties:
+        query:
+          type: object
+          description: Query parameters to filter exports
+        format:
+          type: string
+          enum: [json, csv, pdf]
+        includeFullData:
+          type: boolean
+          default: false
+
+    ExportResponse:
+      type: object
+      properties:
+        downloadUrl:
+          type: string
+          format: uri
+          description: Signed URL (expires in 1 hour)
+        format:
+          type: string
+          enum: [json, csv, pdf]
+        recordCount:
+          type: integer
+        fileSize:
+          type: integer
+        expiresAt:
+          type: string
+          format: date-time
+
+    ApiError:
+      type: object
+      properties:
+        code:
+          type: string
+          enum:
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - NOT_FOUND
+            - HASH_MISMATCH
+            - QUOTA_EXCEEDED
+            - RATE_LIMITED
+            - VALIDATION_ERROR
+            - INTERNAL_ERROR
+        message:
+          type: string
+        details:
+          type: object
+        requestId:
+          type: string
