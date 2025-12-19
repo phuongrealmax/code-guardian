@@ -1,0 +1,75 @@
+# Scheduled CCG Analysis Workflow
+# Runs comprehensive analysis weekly and reports to Slack/Email
+
+name: CCG Weekly Analysis
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  weekly-analysis:
+    name: Weekly Code Health Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Comprehensive Analysis
+        id: ccg
+        uses: codeguardian/ccg-action@v1
+        with:
+          threshold: 60
+          strategy: mixed
+          max-hotspots: 50
+          fail-on-issues: false  # Don't fail, just report
+          comment-on-pr: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate Summary
+        run: |
+          echo "## Weekly Code Health Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Files Analyzed | ${{ steps.ccg.outputs.files-analyzed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Hotspots | ${{ steps.ccg.outputs.hotspots-count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Avg Complexity | ${{ steps.ccg.outputs.avg-complexity }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Max Complexity | ${{ steps.ccg.outputs.max-complexity }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Guard Issues | ${{ steps.ccg.outputs.total-issues }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ${{ steps.ccg.outputs.passed == 'true' && 'Healthy' || 'Needs Attention' }}" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Report Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-ccg-report-${{ github.run_number }}
+          path: .ccg-output/ccg-report.md
+          retention-days: 90
+
+      # Optional: Send to Slack
+      # - name: Notify Slack
+      #   if: steps.ccg.outputs.passed == 'false'
+      #   uses: slackapi/slack-github-action@v1
+      #   with:
+      #     payload: |
+      #       {
+      #         "text": "Weekly Code Health Report: Attention Needed!",
+      #         "blocks": [
+      #           {
+      #             "type": "section",
+      #             "text": {
+      #               "type": "mrkdwn",
+      #               "text": "*Weekly Code Health Report*\n:warning: ${{ steps.ccg.outputs.hotspots-count }} hotspots found"
+      #             }
+      #           }
+      #         ]
+      #       }
+      #   env:
+      #     SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

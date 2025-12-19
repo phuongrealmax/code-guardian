@@ -2,6 +2,22 @@
 
 All notable changes to Claude Code Guardian will be documented in this file.
 
+## [4.0.2] - 2025-12-19
+
+### Added
+- **GitHub Action**: `ccg-action` for CI/CD PR analysis with Docker support
+- **MCP Directory Listings**: Published to mcp.so, mcpservers.org, awesome-mcp-servers
+- **VS Code Marketplace**: Publisher `CodeGuardianStudio` configured
+- **SafetyFlowDiagram**: New animated diagram showing CCG protection flow on marketing site
+
+### Improved
+- Landing page with "Available On" badges (npm, mcp.so, GitHub)
+- GitHub Action workflow example in documentation
+- VS Code extension documentation with marketplace installation
+
+### Fixed
+- Package name references in VS_CODE_EXTENSION.md
+
 ## [4.0.0] - 2025-12-15
 
 ### Added

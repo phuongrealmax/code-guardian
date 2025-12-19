@@ -1,0 +1,36 @@
+# Basic CCG Analysis Workflow
+# Runs code analysis on every push and pull request
+
+name: CCG Code Analysis
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  analyze:
+    name: Analyze Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for diff analysis
+
+      - name: Run CCG Analysis
+        uses: codeguardian/ccg-action@v1
+        with:
+          threshold: 70
+          strategy: mixed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ccg-report
+          path: .ccg-output/ccg-report.md

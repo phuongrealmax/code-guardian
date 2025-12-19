@@ -1,0 +1,48 @@
+# Strict CCG Analysis Workflow
+# Enforces strict code quality standards with lower thresholds
+
+name: CCG Strict Analysis
+
+on:
+  pull_request:
+    branches: [main, master]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  strict-analysis:
+    name: Strict Code Quality Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Strict CCG Analysis
+        id: ccg
+        uses: codeguardian/ccg-action@v1
+        with:
+          threshold: 50              # Stricter threshold
+          strategy: complexity       # Focus on complexity
+          fail-on-issues: true
+          comment-on-pr: true
+          max-hotspots: 30
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check Results
+        if: steps.ccg.outputs.passed == 'false'
+        run: |
+          echo "Code quality check failed!"
+          echo "Hotspots: ${{ steps.ccg.outputs.hotspots-count }}"
+          echo "Max Complexity: ${{ steps.ccg.outputs.max-complexity }}"
+          echo "Issues: ${{ steps.ccg.outputs.total-issues }}"
+          exit 1
+
+      - name: Report Success
+        if: steps.ccg.outputs.passed == 'true'
+        run: |
+          echo "Code quality check passed!"
+          echo "Files analyzed: ${{ steps.ccg.outputs.files-analyzed }}"
+          echo "Average complexity: ${{ steps.ccg.outputs.avg-complexity }}"

@@ -221,6 +221,151 @@ After `ccg quickstart`, the MCP server is automatically configured. Just:
 2. CCG tools are available via MCP
 3. Ask Claude to analyze your code
 
+---
+
+## MCP Tools Examples
+
+Once CCG is configured with Claude Code, you can use 113+ MCP tools directly. Here are practical examples:
+
+### Quick Analysis via Natural Language
+
+The simplest way - use `/ccg` with natural language:
+
+```bash
+# In Claude Code conversation:
+/ccg "analyze code"           # Quick codebase analysis
+/ccg "run tests"              # Run test suite
+/ccg "check memory"           # View stored memories
+/ccg "validate src/app.ts"    # Validate specific file
+```
+
+### Code Guard Examples
+
+Validate code quality before committing:
+
+```typescript
+// Claude will use guard_validate tool:
+// "Please validate this code for issues"
+
+// Example response:
+// ✓ No fake tests detected
+// ✓ No empty catch blocks
+// ⚠ Warning: console.log found at line 42
+// ✗ Error: Hardcoded secret detected at line 15
+```
+
+**Common guard rules:**
+- `fake-test` - Detects tests without assertions
+- `empty-catch` - Finds empty catch blocks
+- `console-log` - Warns about console.log in production code
+- `hardcoded-secrets` - Detects API keys and passwords
+- `todo-fixme` - Lists TODO/FIXME comments
+
+### Memory & Workflow Examples
+
+**Store important decisions:**
+```
+"Remember: We decided to use JWT tokens for authentication because
+it's stateless and works well with our microservices architecture"
+```
+
+CCG stores this in persistent memory with tags like `[decision, auth, architecture]`.
+
+**Recall past decisions:**
+```
+"What decisions did we make about authentication?"
+```
+
+CCG searches memory and returns relevant stored information.
+
+**Track tasks:**
+```
+"Create task: Implement user login endpoint"
+"Start working on the login task"
+"Mark login task as complete"
+```
+
+### Testing Examples
+
+**Run tests:**
+```
+"Run the test suite"
+"Run tests for src/auth/*.ts files"
+"Run tests with coverage"
+```
+
+**Browser testing:**
+```
+"Open browser to http://localhost:3000"
+"Take a screenshot of the current page"
+"Check for console errors"
+"Close the browser session"
+```
+
+### Code Optimization Workflow
+
+**Full optimization workflow:**
+```
+Step 1: "Scan the codebase for hotspots"
+Step 2: "Show me the top 5 files that need refactoring"
+Step 3: "Create a refactor plan for src/services/payment.ts"
+Step 4: "Generate an optimization report"
+```
+
+**Example hotspot output:**
+```
+📊 Top Hotspots:
+
+1. src/services/payment-processor.ts
+   Score: 85 | Reason: Deep nesting (9), High complexity (78)
+   Goal: simplify
+
+2. src/utils/data-transformer.ts
+   Score: 72 | Reason: Large file (450 LOC), Many branches
+   Goal: split-module
+
+3. src/api/order-controller.ts
+   Score: 65 | Reason: Mixed concerns, No tests
+   Goal: refactor + add-tests
+```
+
+### Session Management Examples
+
+**Save progress before risky changes:**
+```
+"Create a checkpoint before I refactor the auth module"
+```
+
+**Resume after disconnect:**
+```
+"Check if there's a previous session to resume"
+"Resume from the last checkpoint"
+```
+
+**View session history:**
+```
+"Show me the session timeline"
+"What tasks were completed today?"
+```
+
+### Latent Chain for Complex Tasks
+
+For multi-step tasks, use Latent Chain Mode:
+
+```
+"Start a latent context for the auth-refactor task"
+"We're in analysis phase - identified these files need changes..."
+"Transition to plan phase"
+"Here's the implementation plan..."
+"Transition to impl phase and apply these changes..."
+"Transition to review phase"
+"Mark auth-refactor as complete"
+```
+
+This preserves context across phases and enables better reasoning.
+
+---
+
 ## Troubleshooting
 
 ### "No source files found"

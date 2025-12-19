@@ -1,0 +1,82 @@
+name: 'CCG Code Analysis'
+description: 'Run Claude Code Guardian analysis on your repository - code quality, hotspot detection, and security checks'
+author: 'CodeGuardian Studio'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  threshold:
+    description: 'Fail if any hotspot score exceeds this value (0-100)'
+    required: false
+    default: '70'
+
+  include:
+    description: 'Glob patterns for files to include (comma-separated)'
+    required: false
+    default: '**/*.ts,**/*.tsx,**/*.js,**/*.jsx'
+
+  exclude:
+    description: 'Glob patterns for files to exclude (comma-separated)'
+    required: false
+    default: 'node_modules/**,dist/**,build/**,.git/**'
+
+  strategy:
+    description: 'Analysis strategy: size, complexity, or mixed'
+    required: false
+    default: 'mixed'
+
+  fail-on-issues:
+    description: 'Fail the action if any issues are found'
+    required: false
+    default: 'true'
+
+  comment-on-pr:
+    description: 'Post analysis results as PR comment'
+    required: false
+    default: 'true'
+
+  max-hotspots:
+    description: 'Maximum number of hotspots to report'
+    required: false
+    default: '20'
+
+  guard-rules:
+    description: 'Guard rules to enable (comma-separated, or "all")'
+    required: false
+    default: 'all'
+
+outputs:
+  hotspots-count:
+    description: 'Number of hotspots found'
+
+  avg-complexity:
+    description: 'Average complexity score'
+
+  max-complexity:
+    description: 'Maximum complexity score found'
+
+  total-issues:
+    description: 'Total number of guard issues found'
+
+  files-analyzed:
+    description: 'Number of files analyzed'
+
+  report-path:
+    description: 'Path to the generated report file'
+
+  passed:
+    description: 'Whether the analysis passed all thresholds'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.threshold }}
+    - ${{ inputs.include }}
+    - ${{ inputs.exclude }}
+    - ${{ inputs.strategy }}
+    - ${{ inputs.fail-on-issues }}
+    - ${{ inputs.comment-on-pr }}
+    - ${{ inputs.max-hotspots }}
+    - ${{ inputs.guard-rules }}

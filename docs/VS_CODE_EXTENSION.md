@@ -28,16 +28,22 @@ A VS Code extension that integrates Code Guardian directly into your editor, pro
    - Run "Extensions: Install from VSIX..."
    - Select the generated `codeguardian-studio-1.0.0.vsix` file
 
-### From Marketplace (Future)
+### From VS Code Marketplace
 
-Once published, you'll be able to install directly from the VS Code marketplace by searching for "Code Guardian Studio".
+Search for "Code Guardian Studio" in the VS Code Extensions panel, or install via command line:
+
+```bash
+code --install-extension CodeGuardianStudio.codeguardian-studio
+```
+
+**Publisher:** [CodeGuardianStudio](https://marketplace.visualstudio.com/publishers/CodeGuardianStudio)
 
 ## Prerequisites
 
 Before using this extension, ensure you have the CCG CLI installed:
 
 ```bash
-npm install -g claude-code-guardian
+npm install -g codeguardian-studio
 ```
 
 Or if using a local development version:
@@ -157,9 +163,17 @@ Use the CLI directly in your CI pipeline:
 ```yaml
 - name: Run Code Guardian
   run: |
-    npm install -g claude-code-guardian
+    npm install -g codeguardian-studio
     ccg init
     ccg code-optimize --report
+```
+
+Or use the official [GitHub Action](../ccg-action/):
+```yaml
+- uses: codeguardian/ccg-action@v1
+  with:
+    threshold: 70
+    comment-on-pr: true
 ```
 
 Then use the VS Code extension to view reports locally.
@@ -170,7 +184,7 @@ Then use the VS Code extension to view reports locally.
 
 The extension couldn't find the `ccg` command. Solutions:
 
-1. Ensure CCG is installed: `npm install -g claude-code-guardian`
+1. Ensure CCG is installed: `npm install -g codeguardian-studio`
 2. Update the `codeguardian.cliPath` setting to the full path
 3. Restart VS Code after installing CCG globally
 

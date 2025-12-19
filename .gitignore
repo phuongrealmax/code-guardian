@@ -47,6 +47,7 @@ logs/
 
 # Internal documentation (not for public)
 internal/
+.internal/
 
 # Internal development files (not for public repo)
 dogfood-cgs.json
@@ -94,3 +95,4 @@ tests/integration/test-repo/
 # Debug/dogfood files
 dogfood-*.json
 *-dogfood.json
+nul

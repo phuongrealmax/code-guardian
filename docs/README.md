@@ -29,12 +29,19 @@ Welcome to the official documentation for Code Guardian Studio (CCG) - an AI-pow
 | [Guard Rulesets](./GUARD_RULESETS.md) | Predefined validation rule collections |
 | [Testing Observability](./TESTING_OBSERVABILITY.md) | Prioritized failure output and health scores |
 
+### Integrations
+
+| Guide | Description |
+|-------|-------------|
+| [VS Code Extension](./VS_CODE_EXTENSION.md) | VS Code integration guide |
+| [GitHub Action](./GITHUB_ACTION.md) | CI/CD integration for PR analysis |
+
 ### Reference
 
 | Guide | Description |
 |-------|-------------|
 | [Flow and Use Cases](./FLOW_AND_USE_CASES.md) | Architecture overview and use cases |
-| [VS Code Extension](./VS_CODE_EXTENSION.md) | VS Code integration guide |
+| [Tools Reference](./TOOLS_REFERENCE.md) | Complete MCP tools reference |
 
 ## Quick Start
 
@@ -52,8 +59,9 @@ ccg code-optimize --report
 ## Links
 
 - **Website**: [codeguardian.studio](https://codeguardian.studio)
-- **GitHub**: [claude-code-guardian](https://github.com/phuongrealmax/claude-code-guardian/tree/public/open-core-release)
+- **GitHub**: [claude-code-guardian](https://github.com/phuongrealmax/claude-code-guardian)
 - **npm**: [codeguardian-studio](https://www.npmjs.com/package/codeguardian-studio)
+- **MCP Directory**: [mcp.so](https://mcp.so/server/claude-code-guardian)
 
 ## Support
 

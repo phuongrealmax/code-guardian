@@ -1,10 +1,44 @@
 # Code Guardian Studio
 
+[![npm version](https://img.shields.io/npm/v/codeguardian-studio)](https://www.npmjs.com/package/codeguardian-studio)
+[![npm downloads](https://img.shields.io/npm/dm/codeguardian-studio)](https://www.npmjs.com/package/codeguardian-studio)
+[![license](https://img.shields.io/npm/l/codeguardian-studio)](https://github.com/phuongrealmax/claude-code-guardian/blob/main/LICENSE)
+[![node](https://img.shields.io/node/v/codeguardian-studio)](https://nodejs.org)
+[![MCP Tools](https://img.shields.io/badge/MCP%20Tools-113%2B-blue)](https://codeguardian.studio)
+[![MCP Server](https://img.shields.io/badge/MCP-mcp.so-purple)](https://mcp.so/server/claude-code-guardian)
+
 > AI-powered code refactor engine for large repositories, built on Claude Code + MCP.
 
 **Version:** 4.0.1 | **License:** MIT (open-core)
 
 **Website & Docs:** https://codeguardian.studio
+
+---
+
+## Why CCG?
+
+CCG stands out as the **most comprehensive MCP server** for Claude Code:
+
+| | CCG | Guardrails AI | NeMo | Semgrep MCP |
+|---|:---:|:---:|:---:|:---:|
+| **MCP Tools** | 113+ | - | - | ~10 |
+| **Code Analysis** | ✅ | ❌ | ❌ | ✅ |
+| **Hotspot Detection** | ✅ | ❌ | ❌ | ❌ |
+| **Workflow Management** | ✅ | ❌ | ❌ | ❌ |
+| **Session Persistence** | ✅ | ❌ | ❌ | ❌ |
+| **Memory System** | ✅ | ❌ | ❌ | ❌ |
+| **Progress Dashboard** | ✅ | ❌ | ❌ | ❌ |
+| **Latent Chain Reasoning** | ✅ | ❌ | ❌ | ❌ |
+| **Guard Rules** | ✅ | ✅ | ✅ | ✅ |
+
+**Key Differentiators:**
+- **All-in-one**: Guard + Metrics + Workflow + Memory in a single server
+- **113+ MCP tools**: The most comprehensive toolset available
+- **Session management**: Resume work across conversations
+- **Real-time progress**: Track refactoring progress with live dashboard
+- **Latent Chain**: Multi-phase reasoning for complex tasks
+
+> **Want detailed comparisons?** See [CCG vs Competitors](docs/COMPARISON.md)
 
 ---
 
@@ -83,6 +117,8 @@ See [License Tiers](docs/USER_GUIDE.md#license-tiers) for feature comparison.
 - **Case Study:** https://codeguardian.studio/case-study
 - **Partners:** https://codeguardian.studio/partners
 - **GitHub:** https://github.com/phuongrealmax/claude-code-guardian
+- **MCP Directory:** https://mcp.so/server/claude-code-guardian
+- **GitHub Action:** [ccg-action](ccg-action/) - CI/CD integration for PR analysis
 
 ## Manual Setup
 
@@ -162,8 +198,10 @@ RUN npm install -g codeguardian-studio
 
 ## Documentation
 
+- [Features](docs/FEATURES.md) - Complete guide to 113+ MCP tools
 - [User Guide](docs/USER_GUIDE.md) - Complete feature documentation
 - [Quickstart](docs/QUICKSTART.md) - Get started in 3 minutes
+- [Comparison](docs/COMPARISON.md) - CCG vs competitors
 - [Migration Guide](docs/MIGRATION_OPEN_CORE.md) - Upgrading to v4.0.0
 - [License System](docs/LICENSE_SYSTEM.md) - Open-core architecture
 - [Changelog](CHANGELOG.md) - Version history
