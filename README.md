@@ -6,6 +6,8 @@
 [![node](https://img.shields.io/node/v/codeguardian-studio)](https://nodejs.org)
 [![MCP Tools](https://img.shields.io/badge/MCP%20Tools-113%2B-blue)](https://codeguardian.studio)
 [![MCP Server](https://img.shields.io/badge/MCP-mcp.so-purple)](https://mcp.so/server/claude-code-guardian)
+[![GitHub stars](https://img.shields.io/github/stars/phuongrealmax/claude-code-guardian?style=social)](https://github.com/phuongrealmax/claude-code-guardian)
+[![GitHub Discussions](https://img.shields.io/github/discussions/phuongrealmax/claude-code-guardian)](https://github.com/phuongrealmax/claude-code-guardian/discussions)
 
 > AI-powered code refactor engine for large repositories, built on Claude Code + MCP.
 
@@ -205,6 +207,14 @@ RUN npm install -g codeguardian-studio
 - [Migration Guide](docs/MIGRATION_OPEN_CORE.md) - Upgrading to v4.0.0
 - [License System](docs/LICENSE_SYSTEM.md) - Open-core architecture
 - [Changelog](CHANGELOG.md) - Version history
+
+## Community & Support
+
+Have questions or ideas? We'd love to hear from you!
+
+- 💬 **[GitHub Discussions](https://github.com/phuongrealmax/claude-code-guardian/discussions)** - Ask questions, share ideas, get help
+- 🐛 **[Report Issues](https://github.com/phuongrealmax/claude-code-guardian/issues)** - Bug reports and feature requests
+- ⭐ **[Star us on GitHub](https://github.com/phuongrealmax/claude-code-guardian)** - Show your support!
 
 ## License
 
