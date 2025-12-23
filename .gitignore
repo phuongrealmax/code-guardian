@@ -67,6 +67,10 @@ site/out
 # Vercel
 .vercel
 
+# Deployment scripts with sensitive info
+deploy-to-ubuntu.ps1
+deploy-ubuntu.sh
+
 # ═══════════════════════════════════════════════════════════════
 # SENSITIVE / INTERNAL FILES (Added 2025-12-12)
 # ═══════════════════════════════════════════════════════════════
