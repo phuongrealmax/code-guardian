@@ -11,7 +11,7 @@
 
 > AI-powered code refactor engine for large repositories, built on Claude Code + MCP.
 
-**Version:** 4.0.1 | **License:** MIT (open-core)
+**Version:** 4.1.0 | **License:** MIT (open-core)
 
 **Website & Docs:** https://codeguardian.studio
 
