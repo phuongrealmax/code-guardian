@@ -7,6 +7,19 @@
 
 import { z } from 'zod';
 import { AutoAgentService } from './auto-agent.service.js';
+import { checkFeatureAccess, Features } from '../../core/license-integration.js';
+
+/**
+ * Wrap a tool handler with license check
+ * AutoAgent requires Team tier or higher.
+ */
+function gatedHandler<T>(handler: (input: T) => Promise<unknown>): (input: T) => Promise<unknown> {
+  return async (input: T) => {
+    const gated = checkFeatureAccess(Features.AUTO_AGENT);
+    if (gated) return gated;
+    return handler(input);
+  };
+}
 
 // ═══════════════════════════════════════════════════════════════
 //                      INPUT SCHEMAS
@@ -63,6 +76,8 @@ const RecallErrorsSchema = z.object({
 // ═══════════════════════════════════════════════════════════════
 
 export function createAutoAgentTools(service: AutoAgentService) {
+  // NOTE: AutoAgent requires Team tier or higher.
+  // Individual tools are gated via gatedHandler wrapper.
   return [
     // ─────────────────────────────────────────────────────────────
     // TASK DECOMPOSITION
@@ -81,7 +96,7 @@ Returns:
 - List of subtasks with order and dependencies
 - Suggested tools for each subtask`,
       inputSchema: DecomposeTaskSchema,
-      handler: async (input: z.infer<typeof DecomposeTaskSchema>) => {
+      handler: gatedHandler(async (input: z.infer<typeof DecomposeTaskSchema>) => {
         const result = await service.decomposeTask({
           taskName: input.taskName,
           taskDescription: input.taskDescription,
@@ -112,7 +127,7 @@ Returns:
           })),
           suggestedOrder: result.suggestedOrder,
         };
-      },
+      }),
     },
 
     {
@@ -120,7 +135,7 @@ Returns:
       description: `Analyze task complexity without decomposing.
 Returns complexity score (1-10) and factors contributing to complexity.`,
       inputSchema: DecomposeTaskSchema.pick({ taskName: true, taskDescription: true, files: true, constraints: true, domain: true }),
-      handler: async (input: z.infer<typeof DecomposeTaskSchema>) => {
+      handler: gatedHandler(async (input: z.infer<typeof DecomposeTaskSchema>) => {
         const result = service.analyzeComplexity({
           taskName: input.taskName,
           taskDescription: input.taskDescription,
@@ -141,7 +156,7 @@ Returns complexity score (1-10) and factors contributing to complexity.`,
             description: f.description,
           })),
         };
-      },
+      }),
     },
 
     // ─────────────────────────────────────────────────────────────

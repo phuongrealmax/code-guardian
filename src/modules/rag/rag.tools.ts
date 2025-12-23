@@ -1,10 +1,23 @@
 /**
  * RAG Module MCP Tools
+ *
+ * NOTE: RAG (Semantic Code Search) requires Team tier or higher.
  */
 
 import { z } from 'zod';
 import { RAGService } from './rag.service.js';
 import { RAGQuery, IndexBuildOptions } from './rag.types.js';
+import { checkFeatureAccess } from '../../core/license-integration.js';
+
+// RAG feature name - not in Features const, using string
+const RAG_FEATURE = 'rag';
+
+/**
+ * License check helper for RAG handlers
+ */
+function checkRAGLicense() {
+  return checkFeatureAccess(RAG_FEATURE);
+}
 
 /**
  * Create RAG MCP tools
@@ -22,6 +35,9 @@ export function createRAGTools(ragService: RAGService) {
         generateDescriptions: z.boolean().optional().describe('Generate NL descriptions for chunks'),
       }),
       handler: async (params: IndexBuildOptions) => {
+        const gated = checkRAGLicense();
+        if (gated) return gated;
+
         const progress = await ragService.buildIndex(params);
 
         return {
@@ -61,6 +77,9 @@ export function createRAGTools(ragService: RAGService) {
         minScore?: number;
         includeRelated?: boolean;
       }) => {
+        const gated = checkRAGLicense();
+        if (gated) return gated;
+
         const query: RAGQuery = {
           query: params.query,
           filters: {
@@ -108,6 +127,9 @@ export function createRAGTools(ragService: RAGService) {
         limit: z.number().optional().describe('Max results (default: 5)'),
       }),
       handler: async (params: { file: string; function?: string; limit?: number }) => {
+        const gated = checkRAGLicense();
+        if (gated) return gated;
+
         const results = await ragService.findSimilar(
           params.file,
           params.function,
@@ -145,6 +167,9 @@ export function createRAGTools(ragService: RAGService) {
       description: 'Get RAG index status including stats and build progress.',
       parameters: z.object({}),
       handler: async () => {
+        const gated = checkRAGLicense();
+        if (gated) return gated;
+
         const status = ragService.getStatus();
 
         return {
@@ -176,6 +201,9 @@ export function createRAGTools(ragService: RAGService) {
       description: 'Clear the RAG index. Use this before rebuilding or to free disk space.',
       parameters: z.object({}),
       handler: async () => {
+        const gated = checkRAGLicense();
+        if (gated) return gated;
+
         ragService.clearIndex();
 
         return {
@@ -192,6 +220,9 @@ export function createRAGTools(ragService: RAGService) {
         chunkId: z.string().describe('The chunk ID from search results'),
       }),
       handler: async (params: { chunkId: string }) => {
+        const gated = checkRAGLicense();
+        if (gated) return gated;
+
         const chunk = ragService.getChunk(params.chunkId);
 
         if (!chunk) {

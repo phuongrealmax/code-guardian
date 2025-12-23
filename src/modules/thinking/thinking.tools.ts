@@ -20,6 +20,7 @@ import {
   GetStyleReferenceParams,
   SuggestModelParams,
 } from './thinking.types.js';
+import { checkFeatureAccess, Features } from '../../core/license-integration.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      TOOL DEFINITIONS
@@ -234,9 +235,17 @@ You should FOLLOW the patterns in the returned snippets.`,
 // ═══════════════════════════════════════════════════════════════
 
 export function createThinkingToolHandlers(service: ThinkingService) {
+  // NOTE: Thinking module requires Team tier or higher.
+  // All handlers check license via checkFeatureAccess.
+
+  const checkLicense = () => checkFeatureAccess(Features.THINKING);
+
   return {
     // Thinking Models
     thinking_get_model: (args: GetThinkingModelParams) => {
+      const gated = checkLicense();
+      if (gated) return gated;
+
       const model = service.getThinkingModel(args.modelName as ThinkingModelType);
 
       if (!model) {

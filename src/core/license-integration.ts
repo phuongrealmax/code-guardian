@@ -294,3 +294,102 @@ export function getFeatureMessage(feature: string, requiredTier: LicenseTier): s
   return `Feature "${feature}" requires ${getTierDisplayName(requiredTier)} tier. ` +
     `Upgrade at https://codeguardian.studio/pricing`;
 }
+
+// ===================================================================
+//                      LICENSE GATE FOR MCP TOOLS
+// ===================================================================
+
+/**
+ * Error thrown when a feature requires a higher tier license
+ */
+export class LicenseRequiredError extends Error {
+  constructor(
+    public readonly feature: FeatureName | string,
+    public readonly requiredTier: LicenseTier,
+    public readonly currentTier: LicenseTier
+  ) {
+    super(
+      `This feature requires ${getTierDisplayName(requiredTier)} tier. ` +
+      `You are on ${getTierDisplayName(currentTier)}. ` +
+      `Upgrade at https://codeguardian.studio/pricing`
+    );
+    this.name = 'LicenseRequiredError';
+  }
+}
+
+/**
+ * Check if feature is available, throw if not
+ */
+export function requireFeature(feature: FeatureName | string, requiredTier: LicenseTier = 'team'): void {
+  if (!hasFeature(feature)) {
+    throw new LicenseRequiredError(feature, requiredTier, getCurrentTier());
+  }
+}
+
+/**
+ * Wrapper for MCP tool handlers that require a specific feature
+ * Returns a gated version that checks license before execution
+ */
+export function gateToolHandler<T extends (...args: any[]) => any>(
+  handler: T,
+  feature: FeatureName | string,
+  requiredTier: LicenseTier = 'team'
+): T {
+  return (async (...args: Parameters<T>): Promise<ReturnType<T>> => {
+    if (!hasFeature(feature)) {
+      const error = new LicenseRequiredError(feature, requiredTier, getCurrentTier());
+      return {
+        success: false,
+        error: error.message,
+        licenseRequired: true,
+        requiredTier,
+        currentTier: getCurrentTier(),
+        upgradeUrl: 'https://codeguardian.studio/pricing',
+      } as any;
+    }
+    return handler(...args);
+  }) as T;
+}
+
+/**
+ * Create a license-gated response for when feature is not available
+ */
+export function createLicenseGatedResponse(
+  feature: FeatureName | string,
+  requiredTier: LicenseTier = 'team'
+): {
+  success: false;
+  error: string;
+  licenseRequired: true;
+  requiredTier: LicenseTier;
+  currentTier: LicenseTier;
+  upgradeUrl: string;
+} {
+  return {
+    success: false,
+    error: `This feature requires ${getTierDisplayName(requiredTier)} tier. ` +
+           `You are on ${getTierDisplayName(getCurrentTier())}. ` +
+           `Upgrade at https://codeguardian.studio/pricing`,
+    licenseRequired: true,
+    requiredTier,
+    currentTier: getCurrentTier(),
+    upgradeUrl: 'https://codeguardian.studio/pricing',
+  };
+}
+
+/**
+ * Check feature and return gated response if not available
+ * Use this at the start of tool handlers:
+ *
+ * const gated = checkFeatureAccess(Features.LATENT_CHAIN);
+ * if (gated) return gated;
+ */
+export function checkFeatureAccess(
+  feature: FeatureName | string,
+  requiredTier: LicenseTier = 'team'
+): ReturnType<typeof createLicenseGatedResponse> | null {
+  if (!hasFeature(feature)) {
+    return createLicenseGatedResponse(feature, requiredTier);
+  }
+  return null;
+}

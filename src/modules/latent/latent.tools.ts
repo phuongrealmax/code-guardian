@@ -27,6 +27,7 @@ import {
   TransitionPhaseParams,
 } from './latent.types.js';
 import { MCPTool, LATENT_TOOL_DEFINITIONS } from './latent.tool-defs.js';
+import { checkFeatureAccess, Features } from '../../core/license-integration.js';
 
 /**
  * Create MCP tools for Latent Module
@@ -37,12 +38,18 @@ export function createLatentTools(_service: LatentService): MCPTool[] {
 
 /**
  * Handle tool calls for Latent Module
+ *
+ * NOTE: Latent Chain Mode requires Team tier or higher.
  */
 export async function handleLatentTool(
   service: LatentService,
   toolName: string,
   args: Record<string, unknown>
 ): Promise<unknown> {
+  // License gate: Latent Chain requires Team tier
+  const gated = checkFeatureAccess(Features.LATENT_CHAIN);
+  if (gated) return gated;
+
   switch (toolName) {
     // Context Management
     case 'latent_context_create': {
