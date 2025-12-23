@@ -25,7 +25,7 @@ export default function Home() {
       <section ref={heroRef} className="hero scroll-fade-in">
         <div className="container">
           <span className="badge">
-            v4.0.1 — MIT Open-Core
+            v4.1.0 — MIT Open-Core • 113+ MCP Tools
           </span>
           <h1>A safety & control layer for AI coding agents.</h1>
           <p style={{fontSize: '1.25rem', maxWidth: '700px', margin: '0 auto 16px'}}>
@@ -249,15 +249,15 @@ export default function Home() {
           </p>
           <div className="stats">
             <div className="stat">
+              <div className="stat-value">113+</div>
+              <div className="stat-label">MCP Tools</div>
+            </div>
+            <div className="stat">
               <div className="stat-value">75→68</div>
               <div className="stat-label">Tech Debt Index</div>
             </div>
             <div className="stat">
-              <div className="stat-value">-9.3%</div>
-              <div className="stat-label">TDI Improvement</div>
-            </div>
-            <div className="stat">
-              <div className="stat-value">62k</div>
+              <div className="stat-value">68k</div>
               <div className="stat-label">Lines Analyzed</div>
             </div>
             <div className="stat">
@@ -356,6 +356,14 @@ export default function Home() {
               <p>
                 <strong>GitHub Action</strong> blocks PRs that exceed risk threshold.
                 Quality gates prevent unsafe code from reaching production.
+              </p>
+            </div>
+            <div className="feature-card stagger-item">
+              <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem', background: '#10b981'}}>NEW in v4.1</span>
+              <h3>Proof Pack & TDI Gates</h3>
+              <p>
+                <strong>Tamper-evident validation</strong> with SHA-256 hash chain.
+                TDI budget gates block code that exceeds complexity thresholds.
               </p>
             </div>
             <div className="feature-card stagger-item">
@@ -681,7 +689,7 @@ jobs:
             That's it. Local report generated in <code>docs/reports/</code> (gitignored).
           </p>
           <div style={{marginTop: '32px'}}>
-            <a href="https://github.com/phuongrealmax/claude-code-guardian/tree/v4.0.1" className="btn btn-primary" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/phuongrealmax/claude-code-guardian" className="btn btn-primary" target="_blank" rel="noopener noreferrer">
               View on GitHub
             </a>
             {' '}
