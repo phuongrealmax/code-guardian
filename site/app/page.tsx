@@ -567,11 +567,11 @@ jobs:
               <p>For product teams & agencies</p>
               <ul>
                 <li>Everything in Dev</li>
-                <li>Advanced reports (before/after)</li>
-                <li>TDI trends & session history</li>
-                <li>Multi-repo config</li>
-                <li>PR hotspot comments</li>
-                <li>VS Code extension</li>
+                <li><strong>Latent Chain</strong> - Multi-phase reasoning</li>
+                <li><strong>AutoAgent</strong> - Task decomposition</li>
+                <li><strong>Thinking Models</strong> - Structured reasoning</li>
+                <li><strong>RAG Search</strong> - Semantic code search</li>
+                <li>Advanced reports & trends</li>
                 <li>Email support</li>
               </ul>
               <CheckoutButton tier="team" className="btn btn-primary">Start Trial</CheckoutButton>

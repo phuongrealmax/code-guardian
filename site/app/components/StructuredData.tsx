@@ -20,8 +20,8 @@ export function SoftwareApplicationSchema() {
         name: 'Team Tier',
         price: '19',
         priceCurrency: 'USD',
-        priceValidUntil: '2025-12-31',
-        description: 'Advanced reports, Tech Debt Index tracking, trend charts, and priority support.',
+        priceValidUntil: '2026-12-31',
+        description: 'Latent Chain reasoning, AutoAgent task decomposition, Thinking Models, RAG semantic search, Multi-Agent coordination, Advanced Testing, and priority support.',
       },
     ],
     aggregateRating: {

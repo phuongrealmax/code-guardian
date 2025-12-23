@@ -44,11 +44,13 @@ export default function Pricing() {
               <p>For product teams & agencies</p>
               <ul>
                 <li>Everything in Dev</li>
-                <li>Advanced reports (before/after)</li>
-                <li>TDI trends & session history</li>
-                <li>Multi-repo config</li>
-                <li>PR hotspot comments</li>
-                <li>VS Code integration</li>
+                <li><strong>Latent Chain</strong> - Multi-phase reasoning</li>
+                <li><strong>AutoAgent</strong> - Task decomposition</li>
+                <li><strong>Thinking Models</strong> - Structured reasoning</li>
+                <li><strong>RAG Search</strong> - Semantic code search</li>
+                <li><strong>Multi-Agent</strong> - Agent coordination</li>
+                <li><strong>Testing Module</strong> - Browser testing</li>
+                <li>Advanced reports & TDI trends</li>
                 <li>Email support</li>
               </ul>
               <CheckoutButton tier="team" className="btn btn-primary">Start 14-Day Trial</CheckoutButton>
@@ -124,6 +126,54 @@ export default function Pricing() {
                   <td className="check">&#10003;</td>
                 </tr>
                 <tr>
+                  <td><strong>AI Reasoning (Team+)</strong></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>Latent Chain Mode</td>
+                  <td className="dash">-</td>
+                  <td className="check">&#10003;</td>
+                  <td className="check">&#10003;</td>
+                </tr>
+                <tr>
+                  <td>AutoAgent (Task Decomposition)</td>
+                  <td className="dash">-</td>
+                  <td className="check">&#10003;</td>
+                  <td className="check">&#10003;</td>
+                </tr>
+                <tr>
+                  <td>Thinking Models & Workflows</td>
+                  <td className="dash">-</td>
+                  <td className="check">&#10003;</td>
+                  <td className="check">&#10003;</td>
+                </tr>
+                <tr>
+                  <td>RAG Semantic Search</td>
+                  <td className="dash">-</td>
+                  <td className="check">&#10003;</td>
+                  <td className="check">&#10003;</td>
+                </tr>
+                <tr>
+                  <td>Multi-Agent Coordination</td>
+                  <td className="dash">-</td>
+                  <td className="check">&#10003;</td>
+                  <td className="check">&#10003;</td>
+                </tr>
+                <tr>
+                  <td>Advanced Testing & Browser</td>
+                  <td className="dash">-</td>
+                  <td className="check">&#10003;</td>
+                  <td className="check">&#10003;</td>
+                </tr>
+                <tr>
+                  <td>Documents Module</td>
+                  <td className="dash">-</td>
+                  <td className="check">&#10003;</td>
+                  <td className="check">&#10003;</td>
+                </tr>
+                <tr>
                   <td><strong>Reporting & Tracking</strong></td>
                   <td></td>
                   <td></td>
@@ -143,12 +193,6 @@ export default function Pricing() {
                 </tr>
                 <tr>
                   <td>Session History</td>
-                  <td className="dash">-</td>
-                  <td className="check">&#10003;</td>
-                  <td className="check">&#10003;</td>
-                </tr>
-                <tr>
-                  <td>Dogfood Reports</td>
                   <td className="dash">-</td>
                   <td className="check">&#10003;</td>
                   <td className="check">&#10003;</td>
